@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PhotoCook</title>
+        <link rel="stylesheet" href="css/index.css">
+    </head>
+    <body>
+        <header>
+            <h1 id="name">PhotoCook</h1>
+        </header>
+        <div id="canvas_selection_title">
+            <h3><b>Select Canvas Size</b></h3>
+        </div>
+        <div id="canvas_selection_area">
+            <div id="canvas_size_cards">
+                <div class="canvas_card">
+                    <div class="ratio_preview square_1_1">1:1</div>
+                    <p>1080 × 1080</p>
+                </div>
+                <div class="canvas_card">
+                    <div class="ratio_preview portrait_4_5">4:5</div>
+                    <p>1080 × 1350</p>
+                </div>
+                <div class="canvas_card">
+                    <div class="ratio_preview landscape_16_9">16:9</div>
+                    <p>1920 × 1080</p>
+                </div>
+                <div class="canvas_card">
+                    <div class="ratio_preview portrait_9_16">9:16</div>
+                    <p>1080 × 1920</p>
+                </div>
+            </div>
+            <button id="canvas_selection_btn">Select Canvas</button>
+        </div>
+
+        <div id="feedback_section_title">
+            <h3>Feedback & Suggestion</h3>
+        </div>
+
+        <div id="feedback_and_suggestion">
+            <div class="form_group">
+                <label for="name">Name :</label>
+                <input id="user_name" placeholder="Enter your name">
+            </div>
+
+            <div class="form_group">
+                <label for="email">Email :</label>
+                <input id="email" placeholder="Your email address">
+            </div>
+
+             <div class="form_group">
+                <label for="feedback">Feedback :</label>
+                <textarea id="feedback" placeholder="Feedback & Suggestion"></textarea>
+            </div>
+            <button id="submit">Submit Feedback</button>
+        </div>
+    </body>
+</html>
