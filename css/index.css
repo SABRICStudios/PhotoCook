@@ -201,18 +201,19 @@ header{
     gap: 10px;
 }
 
-.form-group{
+.form_group{
     display: flex;
     gap: 5px;
-    color: #ffffff;
     align-items: center;
     margin-bottom: 15px;
+    
 }
 
-.form-group label {
+.form_group label {
     width: 100px;
     font-size: 14px;
     flex-shrink: 0;
+    color: #ffffff;
 }
 
 .form_group > input,
@@ -233,6 +234,9 @@ header{
     height: 80px;
 
     resize: none;
+}
+.form_group > input{
+    width: 5vw;
 }
 
 #submit{
