@@ -1,0 +1,254 @@
+body{
+    margin: 0;
+    padding: 0;
+    background-color: #0f0f11;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/*<Header>*/
+
+header{
+    height: 7vh;
+    width: 100%;
+    background-color: #16151a;
+    color: white;
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid #29282d;
+}
+#name{
+    margin: 0;
+}
+
+/*</header>*/
+
+/*Canvas selection area*/
+
+#canvas_selection_title{
+    color: white;
+    width: 95vw;
+    margin: auto;
+    padding-left: 5px;
+}
+
+#canvas_selection_area{
+    color: white;
+    font-size: 80%;
+    padding-left: 6%;
+    margin-top: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+
+
+}
+
+#canvas_size_cards{
+    display: flex;
+    gap: 15px;
+    padding-bottom: 10px;
+
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none; 
+
+    cursor: grab; 
+    user-select: none;
+
+}
+
+#canvas_size_card.active{
+    cursor: grabbing;
+}
+
+#canvas_size_cards::-webkit-scrollbar {
+    display: none;
+}
+
+#canvas_size_cards > div{
+    height: 15vh;
+    width: 40vw;
+    display: flex;
+    background-color: #17161b;
+    border: 2px solid #29282d;
+    border-radius: 8px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+#canvas_size_cards > div > p{
+    margin-top: auto;
+    margin-bottom: 0;
+}
+
+.canvas_card {
+    height: 18vh;
+    min-width: 130px;
+    background-color: #17161b;
+    border: 2px solid #29282d;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    color: #888891;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.canvas_card.active {
+    border-color: #ffffff;
+    color: #ffffff;
+}
+
+.ratio_preview {
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+
+
+.square_1_1 {
+    width: 28px;
+    height: 28px;
+}
+
+.portrait_4_5 {
+    width: 24px;
+    height: 30px;
+}
+
+.landscape_16_9 {
+    width: 36px;
+    height: 20px;
+}
+
+.portrait_9_16 {
+    width: 18px;
+    height: 32px;
+}
+
+#canvas_selection_btn{
+    background-color: #ffffff;
+    color: #0f0f11;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 11px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: block;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: 10px;
+
+}
+
+/* end of canvas selection area */
+
+
+/* feedback and suggestion area */
+
+#feedback_section_title {
+    color: white;
+    width: 95vw;
+    margin: auto;
+    padding-left: 5px;
+}
+
+#feedback_and_suggestion{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 95vw;
+    background-color: #17161b;
+    border: 2px solid #29282d;
+    border-radius: 7px;
+    margin: auto;
+    margin-top: 5px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+#feedback_and_suggestion > div{
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.form_group{
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    
+}
+
+.form_group label {
+    width: 100px;
+    font-size: 14px;
+    padding-top: 6px;
+    flex-shrink: 0;
+    color: #ffffff;
+}
+
+.form_group > input,
+.form_group > textarea{
+    flex: 1;
+    gap: 5px;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px;
+    color: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #29282d;
+    background-color: #0f0f11;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.form_group > textarea {
+    height: 80px;
+
+    resize: none;
+}
+
+#submit{
+    background-color: #ffffff;
+    color: #0f0f11;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: block;
+    margin-left: auto;
+    margin-top: 20px;
+}
