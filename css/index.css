@@ -84,6 +84,7 @@ header{
     background-color: #17161b;
     border: 2px solid #29282d;
     border-radius: 8px;
+    outline: none;
 
     display: flex;
     flex-direction: column;
@@ -114,7 +115,7 @@ header{
     cursor: pointer;
     transition: all 0.2s ease;
 }
-
+#canvas_size_cards > div.active,
 .canvas_card.active {
     border-color: #ffffff;
     color: #ffffff;
@@ -132,6 +133,115 @@ header{
 }
 
 
+
+/* Custom Size Container */
+
+.modal_overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75); /* Dims the background */
+    backdrop-filter: blur(4px); /* Professional frosted effect */
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal_overlay.active {
+    display: flex;
+}
+
+.freesize-canvas {
+    width: 90%;
+    max-width: 400px;
+    margin: auto;
+    padding: 20px;
+    background-color: #17161b;
+    border: 2px solid #29282d;
+    border-radius: 12px;
+    color: #ffffff;
+    box-sizing: border-box;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+    animation: fadeIn 0.2s ease-out;
+}
+
+#input-area-F-S {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#input-area-F-S > div {
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+#input-area-F-S label {
+    width: 100px;
+    font-size: 14px;
+    padding-top: 6px;
+    flex-shrink: 0;
+    color: #ffffff;
+    text-align: left;
+}
+
+#input-area-F-S input {
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px;
+    color: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #29282d;
+    background-color: #0f0f11;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+
+#input-area-F-S input::-webkit-outer-spin-button,
+#input-area-F-S input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.freesize-canvas > h3{
+    text-align: center;
+    color: #ffffff; 
+    margin-top: 0;   
+    margin-bottom: 20px;
+}
+
+.freesize-canvas > #custom-dimension-apply-btn{
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    margin: 20px auto 0 auto;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.freesize_F_S {
+    width: 28px;
+    height: 28px;
+}
 
 .square_1_1 {
     width: 28px;
@@ -157,6 +267,7 @@ header{
     background-color: #ffffff;
     color: #0f0f11;
     border: none;
+    outline: none;
     border-radius: 8px;
     padding: 8px 11px;
     font-weight: 600;
@@ -168,6 +279,9 @@ header{
     margin-right: 10px;
 
 }
+
+
+
 
 /* end of canvas selection area */
 
@@ -204,7 +318,7 @@ header{
 .form_group{
     display: flex;
     gap: 5px;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 15px;
     
 }
@@ -212,6 +326,7 @@ header{
 .form_group label {
     width: 100px;
     font-size: 14px;
+    padding-top: 6px;
     flex-shrink: 0;
     color: #ffffff;
 }
@@ -220,7 +335,9 @@ header{
 .form_group > textarea{
     flex: 1;
     gap: 5px;
-    padding: 5px;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px;
     color: #ffffff;
     border-radius: 6px;
     border: 2px solid #29282d;
@@ -235,14 +352,12 @@ header{
 
     resize: none;
 }
-.form_group > input{
-    width: 5vw;
-}
 
 #submit{
     background-color: #ffffff;
     color: #0f0f11;
     border: none;
+    outline: none;
     border-radius: 8px;
     padding: 10px 22px;
     font-weight: 600;

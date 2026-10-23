@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PhotoCook</title>
+        <link rel="stylesheet" href="css/photo-editor.css">
+    </head> 
+    <body>
+        <header>
+            <button id="export-btn">Export</button>
+        </header>
+        <canvas id="canvas" style="width: auto; height: auto;"></canvas>
+        <div id="toolbar">
+            <button id="add-img">+</button>
+            <button id="crop" class="tool-btn">crop</button>
+        </div>
+
+        <script>
+            /* PhotoCook — Photo Editor Setup */
+            (() => {
+                'use strict';
+
+                const canvas = document.querySelector('canvas');
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                
+                // Retrieve saved settings from sessionStorage
+                const savedSettings = sessionStorage.getItem('photocookCanvasSettings');
+
+                let actualWidth = 1080;
+                let actualHeight = 1080;
+
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        actualWidth = settings.width;
+                        actualHeight = settings.height;
+                        console.log(`PhotoCook: Loaded canvas size ${actualWidth}×${actualHeight}`);
+                    } catch (error) {
+                        console.error('PhotoCook: Failed to parse canvas settings:', error);
+                    }
+                }
+
+                // 1. Set actual high-resolution drawing buffer
+                canvas.width = actualWidth;
+                canvas.height = actualHeight;
+
+                // 2. Apply professional aspect ratio and visual sizing
+                canvas.style.aspectRatio = `${actualWidth} / ${actualHeight}`;
+                
+                // Make it visually smaller by default (e.g., half size or fitting bounds)
+                canvas.style.width = `${actualWidth / 2}px`;
+            })();
+        </script>
+        
+    </body>
+</html>
