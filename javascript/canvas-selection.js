@@ -8,6 +8,7 @@
     // Modal & Custom Input Elements
     const modalOverlay = document.getElementById('freesize_modal_overlay');
     const applyCustomBtn = document.getElementById('custom-dimension-apply-btn');
+    const cancelCustomBtn = document.getElementById('cd-cancle-btn');
     const inputHeight = document.getElementById('height');
     const inputWidth = document.getElementById('width');
 
@@ -76,6 +77,27 @@
                 saveAndRedirect(selectedWidth, selectedHeight);
             } else {
                 alert('Please enter valid positive numbers for height and width.');
+            }
+        });
+    }
+
+    // When "Cancel" button is clicked inside the Free Size modal
+    if (cancelCustomBtn) {
+        cancelCustomBtn.addEventListener('click', () => {
+            if (modalOverlay) {
+                modalOverlay.classList.remove('active');
+                // Clear inputs on cancel (optional)
+                inputHeight.value = '';
+                inputWidth.value = '';
+            }
+        });
+    }
+
+    // Also close modal if clicking outside the modal box on the dark overlay
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
             }
         });
     }

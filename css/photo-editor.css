@@ -17,24 +17,57 @@ body::-webkit-scrollbar {
 }
 
 /*header*/
-header{
+header {
     height: 7vh;
     width: 100%;
-    display: flex;
-
-    justify-content: flex-end;
-    align-items: center;
     background-color: #16151a;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    box-sizing: border-box;
+    border-bottom: 2px solid #29282d;
 }
 
-#export-btn{
-    width: 25vw;
-    height: 4vh;
-    border-radius: 7px;
+#back-btn {
+    background-color: transparent;
+    color: #6e6d7a;
     border: none;
-    margin-right: 10px;
-    font-size: small;
+    outline: none;
+    border-radius: 6px;
+    padding: 5px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, transform 0.1s ease;
+}
+
+#back-btn svg {
+    width: 16px; 
+    height: 16px;
+}
+
+#back-btn:hover {
+    color: #ffffff;
+    background-color: #17161b;
+}
+
+#back-btn:active {
+    transform: scale(0.92);
+}
+
+#export-btn {
+    background-color: #ffffff;
+    color: #0f0f11;
+    border: none;
+    outline: none;
+    border-radius: 8px;
+    padding: 8px 16px;
     font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
 }
 
 /*header ends*/

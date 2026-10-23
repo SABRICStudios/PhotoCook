@@ -167,6 +167,7 @@ header{
     text-align: center;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
     animation: fadeIn 0.2s ease-out;
+    
 }
 
 #input-area-F-S {
@@ -219,12 +220,36 @@ header{
     margin-bottom: 20px;
 }
 
-.freesize-canvas > #custom-dimension-apply-btn{
-    padding: 8px;
+.freesize-canvas > .modal_btn_container {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.freesize-canvas #custom-dimension-apply-btn,
+.freesize-canvas #cd-cancle-btn {
+    padding: 8px 16px;
     border: none;
     border-radius: 8px;
     font-weight: 600;
-    margin: 20px auto 0 auto;
+    cursor: pointer;
+    font-size: 13px;
+    margin: 0;
+}
+
+#custom-dimension-apply-btn {
+    background-color: #ffffff;
+    color: #0f0f11;
+}
+
+#cd-cancle-btn {
+    background-color: #29282d;
+    color: #ffffff;
+}
+
+#cd-cancle-btn:hover {
+    background-color: #3b3a42;
 }
 
 @keyframes fadeIn {
