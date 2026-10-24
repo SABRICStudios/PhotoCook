@@ -24,6 +24,11 @@
                 const fileName = `photocook-${actualWidth}x${actualHeight}.png`;
 
                 try {
+                    // 1. Hide selection outlines and move handles for a clean export
+                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
+                        window.PhotoCookInteraction.redrawCanvas(true); // true = isExporting
+                    }
+
                     // Check if the browser supports the File System Access API (Desktop browsers like Chrome, Edge, etc.)
                     if (window.showSaveFilePicker) {
                         const options = {
@@ -55,16 +60,15 @@
                             }, 'image/png');
                         });
 
-                        return;
+                    } else {
+                        // Fallback for Mobile devices or browsers that don't support showSaveFilePicker
+                        const link = document.createElement('a');
+                        link.download = fileName;
+                        link.href = canvas.toDataURL('image/png');
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                     }
-
-                    // Fallback for Mobile devices or browsers that don't support showSaveFilePicker
-                    const link = document.createElement('a');
-                    link.download = fileName;
-                    link.href = canvas.toDataURL('image/png');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
 
                 } catch (err) {
                     // If user cancels the picker (AbortError), ignore it gracefully
@@ -72,6 +76,10 @@
                         console.error('Export failed:', err);
                     }
                 } finally {
+                    // 2. Restore normal canvas view (brings back selection handles on screen)
+                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
+                        window.PhotoCookInteraction.redrawCanvas(false); // false = normal view
+                    }
                     // Release the lock once finished or cancelled
                     isExporting = false;
                 }
