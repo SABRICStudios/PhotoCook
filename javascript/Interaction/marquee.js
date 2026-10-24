@@ -26,6 +26,15 @@ window.PhotoCookMarquee = (() => {
         document.body.appendChild(selectionBoxEl);
     }
 
+    function getClientCoords(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+    }
+
     function pageToCanvasPos(px, py) {
         const rect = canvasElement.getBoundingClientRect();
         const scaleX = canvasElement.width / rect.width;
@@ -36,13 +45,14 @@ window.PhotoCookMarquee = (() => {
         };
     }
 
-    function handleMouseDown(e) {
+    function handleStart(e) {
         if (!canvasElement) return;
 
-        const canvasPos = pageToCanvasPos(e.clientX, e.clientY);
+        const coords = getClientCoords(e);
+        const canvasPos = pageToCanvasPos(coords.clientX, coords.clientY);
         const layers = getLayersCallback ? getLayersCallback() : [];
 
-        // Check if user clicked on an image or handle inside the main canvas
+        // Check if user touched an image or handle inside the main canvas
         let clickedOnItem = false;
         for (let i = layers.length - 1; i >= 0; i--) {
             const layer = layers[i];
@@ -59,40 +69,58 @@ window.PhotoCookMarquee = (() => {
             }
         }
 
-        // If clicked directly on an item inside the canvas, let interaction.js handle it
-        if (clickedOnItem && canvasElement.contains(e.target)) {
+        const target = document.elementFromPoint(coords.clientX, coords.clientY);
+
+        // If touched directly on an item inside the canvas, let interaction.js handle it
+        if (clickedOnItem && canvasElement.contains(target)) {
             return;
+        }
+
+        if (e.type === 'touchstart') {
+            e.preventDefault();
         }
 
         // Initialize full-screen marquee drag
         isMarqueeActive = true;
-        startPageX = e.clientX;
-        startPageY = e.clientY;
-        currentPageX = e.clientX;
-        currentPageY = e.clientY;
+        startPageX = coords.clientX;
+        startPageY = coords.clientY;
+        currentPageX = coords.clientX;
+        currentPageY = coords.clientY;
 
         createSelectionBoxElement();
         updateSelectionBoxUI();
         selectionBoxEl.style.display = 'block';
 
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+        window.addEventListener('touchcancel', handleEnd);
     }
 
-    function handleMouseMove(e) {
+    function handleMove(e) {
         if (!isMarqueeActive) return;
-        currentPageX = e.clientX;
-        currentPageY = e.clientY;
+        if (e.type === 'touchmove') {
+            e.preventDefault();
+        }
+        const coords = getClientCoords(e);
+        currentPageX = coords.clientX;
+        currentPageY = coords.clientY;
 
         updateSelectionBoxUI();
     }
 
-    function handleMouseUp() {
+    function handleEnd() {
         if (!isMarqueeActive) return;
         isMarqueeActive = false;
 
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('touchmove', handleMove);
+
+        window.removeEventListener('mouseup', handleEnd);
+        window.removeEventListener('touchend', handleEnd);
+        window.removeEventListener('touchcancel', handleEnd);
 
         // Hide and clean up the selection box element
         if (selectionBoxEl) {
@@ -150,12 +178,21 @@ window.PhotoCookMarquee = (() => {
         getLayersCallback = getLayersFn;
         redrawCallback = redrawFn;
 
-        canvasElement.addEventListener('mousedown', handleMouseDown);
+        canvasElement.addEventListener('mousedown', handleStart);
+        canvasElement.addEventListener('touchstart', handleStart, { passive: false });
+
         window.addEventListener('mousedown', (e) => {
             if (!canvasElement.contains(e.target)) {
-                handleMouseDown(e);
+                handleStart(e);
             }
         });
+        window.addEventListener('touchstart', (e) => {
+            const coords = getClientCoords(e);
+            const target = document.elementFromPoint(coords.clientX, coords.clientY);
+            if (!canvasElement.contains(target)) {
+                handleStart(e);
+            }
+        }, { passive: false });
     }
 
     return {

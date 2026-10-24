@@ -110,21 +110,34 @@ window.PhotoCookInteraction = (() => {
         }
     }
 
+    function getClientCoords(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+    }
+
     function getCanvasMousePos(e, canvas) {
+        const coords = getClientCoords(e);
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
+            x: (coords.clientX - rect.left) * scaleX,
+            y: (coords.clientY - rect.top) * scaleY
         };
     }
 
-    function handleMouseDown(e) {
+    function handleStart(e) {
         if (!canvasElement) return;
+        if (e.type === 'touchstart') {
+            e.preventDefault(); // Prevent default mobile scrolling/zooming
+        }
         const pos = getCanvasMousePos(e, canvasElement);
 
-        // 1. Check if user clicked on any layer's handle
+        // 1. Check if user clicked/touched on any layer's handle
         const handleLayer = imageLayers.find(l => l.isSelected && l.handleBounds && Math.hypot(pos.x - l.handleBounds.x, pos.y - l.handleBounds.y) <= l.handleBounds.radius);
         if (handleLayer) {
             isDraggingHandle = true;
@@ -145,7 +158,6 @@ window.PhotoCookInteraction = (() => {
         }
 
         if (clickedLayer) {
-            // If user clicked an image that was NOT part of current selection, select ONLY that image
             if (!clickedLayer.isSelected) {
                 imageLayers.forEach(layer => {
                     layer.isSelected = (layer === clickedLayer);
@@ -159,13 +171,12 @@ window.PhotoCookInteraction = (() => {
         }
     }
 
-    /**
-     * Deselects active layers if the user clicks anywhere outside the canvas element
-     */
-    function handleWindowMouseDown(e) {
+    function handleWindowStart(e) {
         if (!canvasElement) return;
+        const coords = getClientCoords(e);
+        const target = document.elementFromPoint(coords.clientX, coords.clientY);
         
-        if (!canvasElement.contains(e.target)) {
+        if (target && !canvasElement.contains(target)) {
             let needsRedraw = false;
             imageLayers.forEach(layer => {
                 if (layer.isSelected) {
@@ -179,20 +190,20 @@ window.PhotoCookInteraction = (() => {
         }
     }
 
-    function handleMouseMove(e) {
+    function handleMove(e) {
         if ((!isDraggingHandle && !isDraggingLayer) || !canvasElement) return;
+        if (e.type === 'touchmove') {
+            e.preventDefault();
+        }
         const pos = getCanvasMousePos(e, canvasElement);
 
-        // Calculate drag delta in canvas coordinates
         const dx = pos.x - dragStartX;
         const dy = pos.y - dragStartY;
 
         if (isDraggingHandle && activeLayerForHandle) {
-            // Individual movement via move handle
             activeLayerForHandle.x += dx;
             activeLayerForHandle.y += dy;
         } else if (isDraggingLayer) {
-            // Group movement: move ALL currently selected layers together
             imageLayers.forEach(layer => {
                 if (layer.isSelected) {
                     layer.x += dx;
@@ -207,15 +218,12 @@ window.PhotoCookInteraction = (() => {
         redrawCanvas();
     }
 
-    function handleMouseUp() {
+    function handleEnd() {
         isDraggingHandle = false;
         isDraggingLayer = false;
         activeLayerForHandle = null;
     }
 
-    /**
-     * Adds a newly imported image as a layer onto the canvas
-     */
     function addLayer(img) {
         if (!canvasElement) return;
         const canvasWidth = canvasElement.width;
@@ -252,10 +260,18 @@ window.PhotoCookInteraction = (() => {
         isDraggingHandle = false;
         isDraggingLayer = false;
 
-        canvasElement.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mousedown', handleWindowMouseDown);
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        canvasElement.addEventListener('mousedown', handleStart);
+        canvasElement.addEventListener('touchstart', handleStart, { passive: false });
+
+        window.addEventListener('mousedown', handleWindowStart);
+        window.addEventListener('touchstart', handleWindowStart, { passive: false });
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+        window.addEventListener('touchcancel', handleEnd);
     }
 
     return {
