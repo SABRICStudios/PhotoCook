@@ -27,6 +27,8 @@
 
         <script src="javascript/Export/export.js"></script>
         <script src="javascript/Import/import.js"></script>
+        <script src="javascript/Interaction/interaction.js"></script>
+        <script src="javascript/Interaction/marquee.js"></script>
         <script>
             /* PhotoCook — Canvas Setup & Initialization */
             (() => {
@@ -54,29 +56,40 @@
                     }
                 }
 
-                // 1. Set actual high-resolution drawing buffer
                 canvas.width = actualWidth;
                 canvas.height = actualHeight;
 
-                // 2. Fill background with white
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // 3. Apply visual sizing
                 canvas.style.aspectRatio = `${actualWidth} / ${actualHeight}`;
                 canvas.style.width = `${actualWidth / 2}px`;
 
-                // 4. Initialize Export module
+                
+                if (window.PhotoCookInteraction) {
+                    window.PhotoCookInteraction.init(canvas);
+                }
+
+                if (window.PhotoCookMarquee && window.PhotoCookInteraction) {
+                    window.PhotoCookMarquee.init(
+                        canvas,
+                        () => window.PhotoCookInteraction.getLayers(),
+                        (isExporting, overlayFn) => window.PhotoCookInteraction.redrawCanvas(isExporting, overlayFn)
+                    );
+                }
+
                 if (window.PhotoCookExport) {
                     window.PhotoCookExport.init(canvas, actualWidth, actualHeight);
                 }
 
-                // 5. Initialize Import module
                 if (window.PhotoCookImport) {
-                    window.PhotoCookImport.init(canvas, 'add-img');
+                    window.PhotoCookImport.init('add-img', (img) => {
+                        if (window.PhotoCookInteraction) {
+                            window.PhotoCookInteraction.addLayer(img);
+                        }
+                    });
                 }
 
-                // Back button navigation
                 const backBtn = document.getElementById('back-btn');
                 if (backBtn) {
                     backBtn.addEventListener('click', () => {
