@@ -24,12 +24,25 @@
                 const fileName = `photocook-${actualWidth}x${actualHeight}.png`;
 
                 try {
-                    // 1. Hide selection outlines and move handles for a clean export
+                    // 1. Hide selection outlines and move handles for a clean export view
                     if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
                         window.PhotoCookInteraction.redrawCanvas(true); // true = isExporting
                     }
 
-                    // Check if the browser supports the File System Access API (Desktop browsers like Chrome, Edge, etc.)
+                    // 2. Immediately capture the clean canvas state into a Blob *before* any async picker prompt
+                    const cleanBlob = await new Promise((resolve, reject) => {
+                        canvas.toBlob((blob) => {
+                            if (!blob) reject(new Error('Canvas blob creation failed'));
+                            else resolve(blob);
+                        }, 'image/png');
+                    });
+
+                    // 3. Restore normal canvas view immediately so the UI comes back instantly
+                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
+                        window.PhotoCookInteraction.redrawCanvas(false); // false = normal view
+                    }
+
+                    // 4. Check if the browser supports the File System Access API (Desktop Chrome/Edge)
                     if (window.showSaveFilePicker) {
                         const options = {
                             suggestedName: fileName,
@@ -39,47 +52,33 @@
                             }],
                         };
                         
-                        // Open native "Save As" picker
                         const handle = await window.showSaveFilePicker(options);
                         const writable = await handle.createWritable();
-                        
-                        // Convert canvas to blob and write to disk
-                        await new Promise((resolve, reject) => {
-                            canvas.toBlob(async (blob) => {
-                                if (!blob) {
-                                    reject(new Error('Canvas blob creation failed'));
-                                    return;
-                                }
-                                try {
-                                    await writable.write(blob);
-                                    await writable.close();
-                                    resolve();
-                                } catch (err) {
-                                    reject(err);
-                                }
-                            }, 'image/png');
-                        });
+                        await writable.write(cleanBlob);
+                        await writable.close();
 
                     } else {
-                        // Fallback for Mobile devices or browsers that don't support showSaveFilePicker
+                        // Fallback for Mobile devices or browsers without showSaveFilePicker
+                        const url = URL.createObjectURL(cleanBlob);
                         const link = document.createElement('a');
                         link.download = fileName;
-                        link.href = canvas.toDataURL('image/png');
+                        link.href = url;
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
                     }
 
                 } catch (err) {
+                    // Ensure UI view is restored even if an error/cancellation occurs
+                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
+                        window.PhotoCookInteraction.redrawCanvas(false);
+                    }
                     // If user cancels the picker (AbortError), ignore it gracefully
                     if (err.name !== 'AbortError') {
                         console.error('Export failed:', err);
                     }
                 } finally {
-                    // 2. Restore normal canvas view (brings back selection handles on screen)
-                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
-                        window.PhotoCookInteraction.redrawCanvas(false); // false = normal view
-                    }
                     // Release the lock once finished or cancelled
                     isExporting = false;
                 }
