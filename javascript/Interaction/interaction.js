@@ -119,6 +119,14 @@ window.PhotoCookInteraction = (() => {
         return { clientX: e.clientX, clientY: e.clientY };
     }
 
+    function isEventOnHeaderOrToolbar(target) {
+        if (!target) return false;
+        const header = document.querySelector('header');
+        const toolbar = document.getElementById('toolbar');
+        return (header && (header === target || header.contains(target))) ||
+               (toolbar && (toolbar === target || toolbar.contains(target)));
+    }
+
     function getCanvasMousePos(e, canvas) {
         const coords = getClientCoords(e);
         const rect = canvas.getBoundingClientRect();
@@ -132,6 +140,11 @@ window.PhotoCookInteraction = (() => {
 
     function handleStart(e) {
         if (!canvasElement) return;
+        const coords = getClientCoords(e);
+        const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
+
+        if (isEventOnHeaderOrToolbar(target)) return;
+
         if (e.type === 'touchstart') {
             e.preventDefault(); // Prevent default mobile scrolling/zooming
         }
@@ -174,8 +187,10 @@ window.PhotoCookInteraction = (() => {
     function handleWindowStart(e) {
         if (!canvasElement) return;
         const coords = getClientCoords(e);
-        const target = document.elementFromPoint(coords.clientX, coords.clientY);
+        const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
         
+        if (isEventOnHeaderOrToolbar(target)) return;
+
         if (target && !canvasElement.contains(target)) {
             let needsRedraw = false;
             imageLayers.forEach(layer => {

@@ -35,6 +35,14 @@ window.PhotoCookMarquee = (() => {
         return { clientX: e.clientX, clientY: e.clientY };
     }
 
+    function isEventOnHeaderOrToolbar(target) {
+        if (!target) return false;
+        const header = document.querySelector('header');
+        const toolbar = document.getElementById('toolbar');
+        return (header && (header === target || header.contains(target))) ||
+               (toolbar && (toolbar === target || toolbar.contains(target)));
+    }
+
     function pageToCanvasPos(px, py) {
         const rect = canvasElement.getBoundingClientRect();
         const scaleX = canvasElement.width / rect.width;
@@ -49,6 +57,13 @@ window.PhotoCookMarquee = (() => {
         if (!canvasElement) return;
 
         const coords = getClientCoords(e);
+        const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
+
+        // Restrict marquee box on header and toolbar for both PC and mobile
+        if (isEventOnHeaderOrToolbar(target)) {
+            return;
+        }
+
         const canvasPos = pageToCanvasPos(coords.clientX, coords.clientY);
         const layers = getLayersCallback ? getLayersCallback() : [];
 
@@ -68,8 +83,6 @@ window.PhotoCookMarquee = (() => {
                 }
             }
         }
-
-        const target = document.elementFromPoint(coords.clientX, coords.clientY);
 
         // If touched directly on an item inside the canvas, let interaction.js handle it
         if (clickedOnItem && canvasElement.contains(target)) {
@@ -182,13 +195,16 @@ window.PhotoCookMarquee = (() => {
         canvasElement.addEventListener('touchstart', handleStart, { passive: false });
 
         window.addEventListener('mousedown', (e) => {
-            if (!canvasElement.contains(e.target)) {
+            const target = e.target;
+            if (isEventOnHeaderOrToolbar(target)) return;
+            if (!canvasElement.contains(target)) {
                 handleStart(e);
             }
         });
         window.addEventListener('touchstart', (e) => {
             const coords = getClientCoords(e);
-            const target = document.elementFromPoint(coords.clientX, coords.clientY);
+            const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
+            if (isEventOnHeaderOrToolbar(target)) return;
             if (!canvasElement.contains(target)) {
                 handleStart(e);
             }
