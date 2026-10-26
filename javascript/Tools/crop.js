@@ -26,6 +26,7 @@ window.PhotoCookCrop = (() => {
 
     function startCropping(layer, onCropApplied) {
         destroyCropper();
+        window.PhotoCookToolState?.open('crop');
 
         // 1. Hide main toolbar
         const canvas = document.getElementById('canvas');
@@ -183,6 +184,7 @@ window.PhotoCookCrop = (() => {
             subToolbar = null;
         }
         activeImageElement = null;
+        window.PhotoCookToolState?.close();
 
         // Restore main toolbar visibility
         const mainToolbar = document.getElementById('toolbar');

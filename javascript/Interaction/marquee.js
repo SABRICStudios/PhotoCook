@@ -8,6 +8,27 @@ window.PhotoCookMarquee = (() => {
     let getLayersCallback = null;
     let redrawCallback = null;
 
+
+    // Shared editing tool state
+    window.PhotoCookToolState ??= {
+        activeTool: null,
+
+        open(toolName) {
+            this.activeTool = toolName;
+            window.PhotoCookMarquee?.cancel();
+        },
+
+        close() {
+            this.activeTool = null;
+        },
+
+        isToolOpen() {
+            return this.activeTool !== null;
+        }
+    };
+
+
+
     let isMarqueeActive = false;
     let startPageX = 0;
     let startPageY = 0;
@@ -53,8 +74,23 @@ window.PhotoCookMarquee = (() => {
         };
     }
 
+
+    function cancelMarquee() {
+    isMarqueeActive = false;
+
+    window.removeEventListener('mousemove', handleMove);
+    window.removeEventListener('touchmove', handleMove);
+    window.removeEventListener('mouseup', handleEnd);
+    window.removeEventListener('touchend', handleEnd);
+    window.removeEventListener('touchcancel', handleEnd);
+
+    if (selectionBoxEl) {
+        selectionBoxEl.style.display = 'none';
+    }
+}
+
     function handleStart(e) {
-        if (!canvasElement) return;
+    if (!canvasElement || window.PhotoCookToolState?.isToolOpen()) return;
 
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
@@ -124,8 +160,14 @@ window.PhotoCookMarquee = (() => {
         updateSelectionBoxUI();
     }
 
-    function handleEnd() {
-        if (!isMarqueeActive) return;
+    function handleMove(e) {
+    if (!isMarqueeActive) return;
+
+    if (window.PhotoCookToolState?.isToolOpen()) {
+        cancelMarquee();
+        return;
+    }
+
         isMarqueeActive = false;
 
         window.removeEventListener('mousemove', handleMove);
@@ -172,6 +214,15 @@ window.PhotoCookMarquee = (() => {
         }
     }
 
+    function handleEnd() {
+        if (!isMarqueeActive) return;
+
+        if (window.PhotoCookToolState?.isToolOpen()) {
+            cancelMarquee();
+            return;
+        }
+    }
+
     function updateSelectionBoxUI() {
         if (!selectionBoxEl) return;
 
@@ -212,6 +263,7 @@ window.PhotoCookMarquee = (() => {
     }
 
     return {
-        init
+        init,
+        cancel: cancelMarquee
     };
 })();
