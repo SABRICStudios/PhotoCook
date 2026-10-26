@@ -1,9 +1,8 @@
-/* PhotoCook — Interaction & Layer Management Module */
+/* PhotoCook — Interaction Module (Using Layer Manager) */
 window.PhotoCookInteraction = (() => {
     'use strict';
 
     let canvasElement = null;
-    let imageLayers = []; // Stores layers: { img, x, y, width, height, isSelected, handleBounds }
 
     let isDraggingHandle = false;
     let isDraggingLayer = false;
@@ -20,6 +19,7 @@ window.PhotoCookInteraction = (() => {
         const ctx = canvasElement.getContext('2d');
         const canvasWidth = canvasElement.width;
         const canvasHeight = canvasElement.height;
+        const imageLayers = window.PhotoCookLayerManager ? window.PhotoCookLayerManager.getLayers() : [];
 
         // 1. Reset canvas with white background
         ctx.fillStyle = '#ffffff';
@@ -139,7 +139,7 @@ window.PhotoCookInteraction = (() => {
     }
 
     function handleStart(e) {
-        if (!canvasElement) return;
+        if (!canvasElement || !window.PhotoCookLayerManager) return;
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
 
@@ -149,6 +149,7 @@ window.PhotoCookInteraction = (() => {
             e.preventDefault(); // Prevent default mobile scrolling/zooming
         }
         const pos = getCanvasMousePos(e, canvasElement);
+        const imageLayers = window.PhotoCookLayerManager.getLayers();
 
         // 1. Check if user clicked/touched on any layer's handle
         const handleLayer = imageLayers.find(l => l.isSelected && l.handleBounds && Math.hypot(pos.x - l.handleBounds.x, pos.y - l.handleBounds.y) <= l.handleBounds.radius);
@@ -185,7 +186,7 @@ window.PhotoCookInteraction = (() => {
     }
 
     function handleWindowStart(e) {
-        if (!canvasElement) return;
+        if (!canvasElement || !window.PhotoCookLayerManager) return;
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
         
@@ -193,7 +194,7 @@ window.PhotoCookInteraction = (() => {
 
         if (target && !canvasElement.contains(target)) {
             let needsRedraw = false;
-            imageLayers.forEach(layer => {
+            window.PhotoCookLayerManager.getLayers().forEach(layer => {
                 if (layer.isSelected) {
                     layer.isSelected = false;
                     needsRedraw = true;
@@ -206,7 +207,7 @@ window.PhotoCookInteraction = (() => {
     }
 
     function handleMove(e) {
-        if ((!isDraggingHandle && !isDraggingLayer) || !canvasElement) return;
+        if ((!isDraggingHandle && !isDraggingLayer) || !canvasElement || !window.PhotoCookLayerManager) return;
         if (e.type === 'touchmove') {
             e.preventDefault();
         }
@@ -219,7 +220,7 @@ window.PhotoCookInteraction = (() => {
             activeLayerForHandle.x += dx;
             activeLayerForHandle.y += dy;
         } else if (isDraggingLayer) {
-            imageLayers.forEach(layer => {
+            window.PhotoCookLayerManager.getLayers().forEach(layer => {
                 if (layer.isSelected) {
                     layer.x += dx;
                     layer.y += dy;
@@ -239,39 +240,8 @@ window.PhotoCookInteraction = (() => {
         activeLayerForHandle = null;
     }
 
-    function addLayer(img) {
-        if (!canvasElement) return;
-        const canvasWidth = canvasElement.width;
-        const canvasHeight = canvasElement.height;
-
-        const scale = Math.min(canvasWidth / img.width, canvasHeight / img.height);
-        const drawWidth = img.width * scale;
-        const drawHeight = img.height * scale;
-        const x = (canvasWidth - drawWidth) / 2;
-        const y = (canvasHeight - drawHeight) / 2;
-
-        imageLayers.forEach(l => l.isSelected = false);
-
-        imageLayers.push({
-            img: img,
-            x: x,
-            y: y,
-            width: drawWidth,
-            height: drawHeight,
-            isSelected: true,
-            handleBounds: null
-        });
-
-        redrawCanvas();
-    }
-
-    function getLayers() {
-        return imageLayers;
-    }
-
     function init(canvas) {
         canvasElement = canvas;
-        imageLayers = [];
         isDraggingHandle = false;
         isDraggingLayer = false;
 
@@ -291,8 +261,6 @@ window.PhotoCookInteraction = (() => {
 
     return {
         init,
-        addLayer,
-        redrawCanvas,
-        getLayers
+        redrawCanvas
     };
 })();

@@ -5,6 +5,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>PhotoCook</title>
         <link rel="stylesheet" href="css/photo-editor.css">
+        <link rel="stylesheet" href="css/tool-css.css">
+
+        <!--Library links-->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+        
+
     </head> 
     <body>
         <header>
@@ -16,7 +23,7 @@
             </button>
             <button id="export-btn">Export</button>
         </header>
-        <canvas id="canvas" style="width: auto; height: auto;"></canvas>
+        <canvas id="canvas"></canvas>
         <div id="toolbar">
             <button id="add-img">+</button>
             <button id="crop" class="tool-btn">crop</button>
@@ -27,8 +34,20 @@
 
         <script src="javascript/Export/export.js"></script>
         <script src="javascript/Import/import.js"></script>
+        <script src="javascript/layer-manager.js"></script>
         <script src="javascript/Interaction/interaction.js"></script>
         <script src="javascript/Interaction/marquee.js"></script>
+
+        <!--Engine-->
+
+        <script src="javascript/engine.js"></script>
+
+        <!--Tools-->
+
+        <script src="javascript/Tools/crop.js"></script>
+
+
+
         <script>
             /* PhotoCook — Canvas Setup & Initialization */
             (() => {
@@ -70,10 +89,10 @@
                     window.PhotoCookInteraction.init(canvas);
                 }
 
-                if (window.PhotoCookMarquee && window.PhotoCookInteraction) {
+                if (window.PhotoCookMarquee && window.PhotoCookLayerManager) {
                     window.PhotoCookMarquee.init(
                         canvas,
-                        () => window.PhotoCookInteraction.getLayers(),
+                        () => window.PhotoCookLayerManager.getLayers(),
                         (isExporting, overlayFn) => window.PhotoCookInteraction.redrawCanvas(isExporting, overlayFn)
                     );
                 }
@@ -83,10 +102,22 @@
                 }
 
                 if (window.PhotoCookImport) {
-                    window.PhotoCookImport.init('add-img', (img) => {
-                        if (window.PhotoCookInteraction) {
-                            window.PhotoCookInteraction.addLayer(img);
-                        }
+                window.PhotoCookImport.init('add-img', (img) => {
+                    if (window.PhotoCookLayerManager && window.PhotoCookInteraction) {
+                        window.PhotoCookLayerManager.addLayer(img, actualWidth, actualHeight);
+                        window.PhotoCookInteraction.redrawCanvas();
+                    }
+                });
+            }
+
+                if (window.PhotoCookEngine) {
+                    window.PhotoCookEngine.init(canvas);
+                }
+
+                // Crop Tool callback delegates work straight to the engine
+                if (window.PhotoCookCrop) {
+                    window.PhotoCookCrop.init('crop', (newImg, newWidth, newHeight, layer) => {
+                    window.PhotoCookEngine.applyCrop(newImg, newWidth, newHeight, layer);
                     });
                 }
 
