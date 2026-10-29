@@ -8,7 +8,6 @@ window.PhotoCookMarquee = (() => {
     let getLayersCallback = null;
     let redrawCallback = null;
 
-
     // Shared editing tool state
     window.PhotoCookToolState ??= {
         activeTool: null,
@@ -26,8 +25,6 @@ window.PhotoCookMarquee = (() => {
             return this.activeTool !== null;
         }
     };
-
-
 
     let isMarqueeActive = false;
     let startPageX = 0;
@@ -60,8 +57,10 @@ window.PhotoCookMarquee = (() => {
         if (!target) return false;
         const header = document.querySelector('header');
         const toolbar = document.getElementById('toolbar');
+        const textToolbar = document.getElementById('text-sub-toolbar');
         return (header && (header === target || header.contains(target))) ||
-               (toolbar && (toolbar === target || toolbar.contains(target)));
+               (toolbar && (toolbar === target || toolbar.contains(target))) ||
+               (textToolbar && (textToolbar === target || textToolbar.contains(target)));
     }
 
     function pageToCanvasPos(px, py) {
@@ -74,28 +73,120 @@ window.PhotoCookMarquee = (() => {
         };
     }
 
+    /**
+     * Recalculates layer bounds dynamically (especially critical for text layers)
+     */
+    function getLayerBounds(layer) {
+        if (layer.type === 'text' && canvasElement) {
+            const ctx = canvasElement.getContext('2d');
+            const fontSize = layer.fontSize || 48;
+            const lines = String(layer.text || '').split(/\r\n|\r|\n/);
+            const lineHeight = fontSize * 1.2 + (layer.lineSpacing || 0);
+
+            ctx.save();
+            ctx.font = `${layer.isItalic ? 'italic ' : ''}${layer.isBold ? 'bold ' : ''}${fontSize}px "${layer.fontFamily || 'Arial'}"`;
+            if ('letterSpacing' in ctx) ctx.letterSpacing = `${layer.letterSpacing || 0}px`;
+
+            layer.width = Math.max(40, ...lines.map(line => ctx.measureText(line).width + 40));
+            layer.height = Math.max(20, fontSize * 1.2 + (lines.length - 1) * lineHeight + 20);
+            ctx.restore();
+        }
+        return {
+            x: layer.x,
+            y: layer.y,
+            width: layer.width || 100,
+            height: layer.height || 50
+        };
+    }
+
+    /* PhotoCook — Canvas Selection Handles Overlay */
+    function renderMarquee(ctx, layer) {
+        if (!layer || !layer.isSelected) return;
+
+        const bounds = getLayerBounds(layer);
+        ctx.save();
+        ctx.translate(layer.x, layer.y);
+        if (layer.rotation) ctx.rotate((layer.rotation * Math.PI) / 180);
+
+        const w = bounds.width;
+        const h = bounds.height;
+
+        // 1. Purple Bounding Box Border
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, w, h);
+
+        // 2. Corner Round Handle (Top-Left)
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 3. Side Vertical Pillar Handle (Right Edge)
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(w - 4, (h / 2) - 10, 8, 20, 4);
+        } else {
+            ctx.rect(w - 4, (h / 2) - 10, 8, 20);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // 4. Floating Action Buttons (Rotate & Move) below bounding box
+        const btnCenterY = h + 35;
+        const rotateX = (w / 2) - 20;
+        const moveX = (w / 2) + 20;
+
+        // Rotate Button
+        ctx.beginPath();
+        ctx.arc(rotateX, btnCenterY, 16, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.15)';
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.strokeStyle = '#d1d5db';
+        ctx.stroke();
+
+        ctx.fillStyle = '#1f2937';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('↻', rotateX, btnCenterY);
+
+        // Move Button
+        ctx.beginPath();
+        ctx.arc(moveX, btnCenterY, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillText('✢', moveX, btnCenterY);
+
+        ctx.restore();
+    }
 
     function cancelMarquee() {
-    isMarqueeActive = false;
+        isMarqueeActive = false;
 
-    window.removeEventListener('mousemove', handleMove);
-    window.removeEventListener('touchmove', handleMove);
-    window.removeEventListener('mouseup', handleEnd);
-    window.removeEventListener('touchend', handleEnd);
-    window.removeEventListener('touchcancel', handleEnd);
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('touchmove', handleMove);
+        window.removeEventListener('mouseup', handleEnd);
+        window.removeEventListener('touchend', handleEnd);
+        window.removeEventListener('touchcancel', handleEnd);
 
-    if (selectionBoxEl) {
-        selectionBoxEl.style.display = 'none';
+        if (selectionBoxEl) {
+            selectionBoxEl.style.display = 'none';
+        }
     }
-}
 
     function handleStart(e) {
-    if (!canvasElement || window.PhotoCookToolState?.isToolOpen()) return;
+        if (!canvasElement) return;
 
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
 
-        // Restrict marquee box on header and toolbar for both PC and mobile
         if (isEventOnHeaderOrToolbar(target)) {
             return;
         }
@@ -103,11 +194,14 @@ window.PhotoCookMarquee = (() => {
         const canvasPos = pageToCanvasPos(coords.clientX, coords.clientY);
         const layers = getLayersCallback ? getLayersCallback() : [];
 
-        // Check if user touched an image or handle inside the main canvas
         let clickedOnItem = false;
         for (let i = layers.length - 1; i >= 0; i--) {
             const layer = layers[i];
-            if (canvasPos.x >= layer.x && canvasPos.x <= layer.x + layer.width && canvasPos.y >= layer.y && canvasPos.y <= layer.y + layer.height) {
+            const bounds = getLayerBounds(layer);
+            
+            // Check bounding overlap for images or text layers
+            if (canvasPos.x >= bounds.x && canvasPos.x <= bounds.x + bounds.width && 
+                canvasPos.y >= bounds.y && canvasPos.y <= bounds.y + bounds.height) {
                 clickedOnItem = true;
                 break;
             }
@@ -120,7 +214,6 @@ window.PhotoCookMarquee = (() => {
             }
         }
 
-        // If touched directly on an item inside the canvas, let interaction.js handle it
         if (clickedOnItem && canvasElement.contains(target)) {
             return;
         }
@@ -129,7 +222,6 @@ window.PhotoCookMarquee = (() => {
             e.preventDefault();
         }
 
-        // Initialize full-screen marquee drag
         isMarqueeActive = true;
         startPageX = coords.clientX;
         startPageY = coords.clientY;
@@ -142,7 +234,6 @@ window.PhotoCookMarquee = (() => {
 
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('touchmove', handleMove, { passive: false });
-
         window.addEventListener('mouseup', handleEnd);
         window.addEventListener('touchend', handleEnd);
         window.addEventListener('touchcancel', handleEnd);
@@ -160,29 +251,21 @@ window.PhotoCookMarquee = (() => {
         updateSelectionBoxUI();
     }
 
-    function handleMove(e) {
-    if (!isMarqueeActive) return;
-
-    if (window.PhotoCookToolState?.isToolOpen()) {
-        cancelMarquee();
-        return;
-    }
+    function handleEnd(e) {
+        if (!isMarqueeActive) return;
 
         isMarqueeActive = false;
 
         window.removeEventListener('mousemove', handleMove);
         window.removeEventListener('touchmove', handleMove);
-
         window.removeEventListener('mouseup', handleEnd);
         window.removeEventListener('touchend', handleEnd);
         window.removeEventListener('touchcancel', handleEnd);
 
-        // Hide and clean up the selection box element
         if (selectionBoxEl) {
             selectionBoxEl.style.display = 'none';
         }
 
-        // Convert page coordinates to canvas space for layer intersection testing
         const startCanvas = pageToCanvasPos(startPageX, startPageY);
         const currentCanvas = pageToCanvasPos(currentPageX, currentPageY);
 
@@ -194,32 +277,44 @@ window.PhotoCookMarquee = (() => {
         const isClick = (Math.abs(currentPageX - startPageX) < 5 && Math.abs(currentPageY - startPageY) < 5);
         const layers = getLayersCallback ? getLayersCallback() : [];
 
+        let selectedTextLayer = null;
+
         layers.forEach(layer => {
+            const bounds = getLayerBounds(layer);
             if (isClick) {
-                layer.isSelected = false;
+                const hit = (
+                    startCanvas.x >= bounds.x && startCanvas.x <= bounds.x + bounds.width &&
+                    startCanvas.y >= bounds.y && startCanvas.y <= bounds.y + bounds.height
+                );
+                layer.isSelected = hit;
+                if (hit && layer.type === 'text') {
+                    selectedTextLayer = layer;
+                }
             } else {
-                // Select images that overlap with the marquee box
                 const overlaps = !(
-                    layer.x > maxX ||
-                    layer.x + layer.width < minX ||
-                    layer.y > maxY ||
-                    layer.y + layer.height < minY
+                    bounds.x > maxX ||
+                    bounds.x + bounds.width < minX ||
+                    bounds.y > maxY ||
+                    bounds.y + bounds.height < minY
                 );
                 layer.isSelected = overlaps;
+                if (overlaps && layer.type === 'text') {
+                    selectedTextLayer = layer;
+                }
             }
         });
 
-        if (redrawCallback) {
-            redrawCallback();
+       
+    
+        // Edit the selected text layer without toggling the toolbar closed
+        if (selectedTextLayer && window.PhotoCookText) {
+            window.PhotoCookText.selectTextLayer(selectedTextLayer);
         }
-    }
 
-    function handleEnd() {
-        if (!isMarqueeActive) return;
-
-        if (window.PhotoCookToolState?.isToolOpen()) {
-            cancelMarquee();
-            return;
+        if (redrawCallback) {
+            redrawCallback(false, (ctx) => {
+                layers.forEach(l => renderMarquee(ctx, l));
+            });
         }
     }
 
@@ -264,6 +359,7 @@ window.PhotoCookMarquee = (() => {
 
     return {
         init,
+        renderMarquee,
         cancel: cancelMarquee
     };
 })();

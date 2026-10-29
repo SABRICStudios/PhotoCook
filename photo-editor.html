@@ -26,7 +26,8 @@
         <canvas id="canvas"></canvas>
         <div id="toolbar">
             <button id="add-img">+</button>
-            <button id="crop" class="tool-btn">crop</button>
+            <button id="crop" class="tool-btn">Crop</button>
+            <button id="text" class="tool-btn">Text</button>
         </div>
 
                    <!--Javascript area -->
@@ -45,6 +46,7 @@
         <!--Tools-->
 
         <script src="javascript/Tools/crop.js"></script>
+        <script src="javascript/Tools/text.js"></script>
 
 
 
@@ -109,15 +111,22 @@
                     }
                 });
             }
-
                 if (window.PhotoCookEngine) {
                     window.PhotoCookEngine.init(canvas);
                 }
 
-                // Crop Tool callback delegates work straight to the engine
                 if (window.PhotoCookCrop) {
                     window.PhotoCookCrop.init('crop', (newImg, newWidth, newHeight, layer) => {
                     window.PhotoCookEngine.applyCrop(newImg, newWidth, newHeight, layer);
+                    });
+                }
+
+                if (window.PhotoCookText) {
+                    window.PhotoCookText.init('text', (textConfig) => {
+                        if (window.PhotoCookLayerManager && window.PhotoCookInteraction) {
+                            window.PhotoCookLayerManager.addTextLayer(textConfig, actualWidth, actualHeight);
+                            window.PhotoCookInteraction.redrawCanvas();
+                        }
                     });
                 }
 

@@ -16,99 +16,119 @@ window.PhotoCookInteraction = (() => {
     function redrawCanvas(isExporting = false, customOverlayCallback = null) {
         if (!canvasElement) return;
 
-        const ctx = canvasElement.getContext('2d');
-        const canvasWidth = canvasElement.width;
-        const canvasHeight = canvasElement.height;
-        const imageLayers = window.PhotoCookLayerManager ? window.PhotoCookLayerManager.getLayers() : [];
+        const imageLayers = window.PhotoCookLayerManager?.getLayers() || [];
 
-        // 1. Reset canvas with white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+// Render image and text layers through the central engine.
 
         // 2. Draw every image layer
-        imageLayers.forEach((layer) => {
-            ctx.drawImage(layer.img, layer.x, layer.y, layer.width, layer.height);
+// 2. Let PhotoCookEngine render all layers (both images and text safely)
+        if (window.PhotoCookEngine) {
+            window.PhotoCookEngine.render(isExporting, (targetCtx) => {
+                // 3. Draw selection borders & handles for selected layers over the engine render
+                imageLayers.forEach((layer) => {
+                    if (layer.isSelected && !isExporting) {
+                        // --- 5X SCALED PROFESSIONAL ACCENT BORDER ---
+                        targetCtx.strokeStyle = '#2563eb'; 
+                        targetCtx.lineWidth = 10;          
+                        targetCtx.strokeRect(layer.x, layer.y, layer.width, layer.height);
 
-            // If selected AND we aren't exporting, draw professional scaled-up UI handles
-            if (layer.isSelected && !isExporting) {
-                // --- 5X SCALED PROFESSIONAL ACCENT BORDER ---
-                ctx.strokeStyle = '#2563eb'; // Modern royal blue
-                ctx.lineWidth = 10;          // Scaled to 10px (5x of 2px)
-                ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
+                        // --- 5X SCALED PROFESSIONAL MOVE HANDLE ---
+                        const handleX = layer.x + layer.width / 2;
+                        const handleY = layer.y + layer.height + 215; 
+                        const handleRadius = 50;                     
 
-                // --- 5X SCALED PROFESSIONAL MOVE HANDLE ---
-                const handleX = layer.x + layer.width / 2;
-                const handleY = layer.y + layer.height + 215; // 5x offset below image (45px * 5)
-                const handleRadius = 50;                     // 5x larger radius (22px * 5)
+                        layer.handleBounds = { x: handleX, y: handleY, radius: handleRadius };
 
-                layer.handleBounds = { x: handleX, y: handleY, radius: handleRadius };
+                        targetCtx.save();
+                        targetCtx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+                        targetCtx.shadowBlur = 20;
+                        targetCtx.shadowOffsetX = 0;
+                        targetCtx.shadowOffsetY = 8;
 
-                // Handle Drop Shadow for depth (scaled up shadow)
-                ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-                ctx.shadowBlur = 20;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 8;
+                        targetCtx.beginPath();
+                        targetCtx.arc(handleX, handleY, handleRadius, 0, Math.PI * 2);
+                        targetCtx.fillStyle = '#ffffff';
+                        targetCtx.fill();
+                        targetCtx.restore(); 
 
-                // Handle Circle Background
-                ctx.beginPath();
-                ctx.arc(handleX, handleY, handleRadius, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-                ctx.restore(); // Restore context to remove shadow for crisp drawing
+                        targetCtx.beginPath();
+                        targetCtx.arc(handleX, handleY, handleRadius, 0, Math.PI * 2);
+                        targetCtx.strokeStyle = '#e2e8f0';
+                        targetCtx.lineWidth = 8;
+                        targetCtx.stroke();
 
-                // Handle Ring Border
-                ctx.beginPath();
-                ctx.arc(handleX, handleY, handleRadius, 0, Math.PI * 2);
-                ctx.strokeStyle = '#e2e8f0';
-                ctx.lineWidth = 8;
-                ctx.stroke();
+                        // --- 5X SCALED CLEAN VECTOR MOVE ICON ---
+                        targetCtx.strokeStyle = '#1e293b'; 
+                        targetCtx.lineWidth = 10;
+                        targetCtx.lineCap = 'round';
+                        targetCtx.lineJoin = 'round';
 
-                // --- 5X SCALED CLEAN VECTOR MOVE ICON ---
-                ctx.strokeStyle = '#1e293b'; // Dark slate grey for icon
-                ctx.lineWidth = 10;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
+                        const len = 35; 
+                        const tip = 12; 
 
-                const len = 35; // 5x arrow arm length (7 * 5)
-                const tip = 12; // Proportionate arrowhead size
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(handleX, handleY - len);
+                        targetCtx.lineTo(handleX, handleY + len);
+                        targetCtx.moveTo(handleX - tip, handleY - len + tip);
+                        targetCtx.lineTo(handleX, handleY - len);
+                        targetCtx.lineTo(handleX + tip, handleY - len + tip);
+                        targetCtx.moveTo(handleX - tip, handleY + len - tip);
+                        targetCtx.lineTo(handleX, handleY + len);
+                        targetCtx.lineTo(handleX + tip, handleY + len - tip);
 
-                // Vertical shaft
-                ctx.beginPath();
-                ctx.moveTo(handleX, handleY - len);
-                ctx.lineTo(handleX, handleY + len);
-                // Top arrowhead
-                ctx.moveTo(handleX - tip, handleY - len + tip);
-                ctx.lineTo(handleX, handleY - len);
-                ctx.lineTo(handleX + tip, handleY - len + tip);
-                // Bottom arrowhead
-                ctx.moveTo(handleX - tip, handleY + len - tip);
-                ctx.lineTo(handleX, handleY + len);
-                ctx.lineTo(handleX + tip, handleY + len - tip);
+                        targetCtx.moveTo(handleX - len, handleY);
+                        targetCtx.lineTo(handleX + len, handleY);
+                        targetCtx.moveTo(handleX - len + tip, handleY - tip);
+                        targetCtx.lineTo(handleX - len, handleY);
+                        targetCtx.lineTo(handleX - len + tip, handleY + tip);
+                        targetCtx.moveTo(handleX + len - tip, handleY - tip);
+                        targetCtx.lineTo(handleX + len, handleY);
+                        targetCtx.lineTo(handleX + len - tip, handleY + tip);
 
-                // Horizontal shaft
-                ctx.moveTo(handleX - len, handleY);
-                ctx.lineTo(handleX + len, handleY);
-                // Left arrowhead
-                ctx.moveTo(handleX - len + tip, handleY - tip);
-                ctx.lineTo(handleX - len, handleY);
-                ctx.lineTo(handleX - len + tip, handleY + tip);
-                // Right arrowhead
-                ctx.moveTo(handleX + len - tip, handleY - tip);
-                ctx.lineTo(handleX + len, handleY);
-                ctx.lineTo(handleX + len - tip, handleY + tip);
+                    targetCtx.stroke();
 
-                ctx.stroke();
-            } else {
-                layer.handleBounds = null;
-            }
-        });
+                        // Delete button — text layers only
+                        if (layer.type === 'text') {
+                            const deleteX = layer.x + layer.width;
+                            const deleteY = layer.y;
+                            const deleteRadius = 28;
 
-        // 3. Render custom active overlay if provided
-        if (customOverlayCallback && !isExporting) {
-            customOverlayCallback(ctx);
+                            layer.deleteBounds = { x: deleteX, y: deleteY, radius: deleteRadius };
+
+                            targetCtx.save();
+                            targetCtx.beginPath();
+                            targetCtx.arc(deleteX, deleteY, deleteRadius, 0, Math.PI * 2);
+                            targetCtx.fillStyle = '#ef4444';
+                            targetCtx.fill();
+
+                            targetCtx.strokeStyle = '#ffffff';
+                            targetCtx.lineWidth = 5;
+                            targetCtx.lineCap = 'round';
+                            targetCtx.beginPath();
+                            targetCtx.moveTo(deleteX - 9, deleteY - 9);
+                            targetCtx.lineTo(deleteX + 9, deleteY + 9);
+                            targetCtx.moveTo(deleteX + 9, deleteY - 9);
+                            targetCtx.lineTo(deleteX - 9, deleteY + 9);
+                            targetCtx.stroke();
+                            targetCtx.restore();
+                        } else {
+                            layer.deleteBounds = null;
+                        }
+
+                    } else {
+                        layer.handleBounds = null;
+                        layer.deleteBounds = null;
+                    }
+                });
+
+                // 4. Render custom active overlay if provided
+                if (customOverlayCallback) {
+                    customOverlayCallback(targetCtx);
+                }
+            });
         }
     }
+
 
     function getClientCoords(e) {
         if (e.touches && e.touches.length > 0) {
@@ -123,8 +143,10 @@ window.PhotoCookInteraction = (() => {
         if (!target) return false;
         const header = document.querySelector('header');
         const toolbar = document.getElementById('toolbar');
+        const textToolbar = document.getElementById('text-sub-toolbar');
         return (header && (header === target || header.contains(target))) ||
-               (toolbar && (toolbar === target || toolbar.contains(target)));
+            (toolbar && (toolbar === target || toolbar.contains(target))) ||
+            (textToolbar && (textToolbar === target || textToolbar.contains(target)));
     }
 
     function getCanvasMousePos(e, canvas) {
@@ -151,6 +173,31 @@ window.PhotoCookInteraction = (() => {
         const pos = getCanvasMousePos(e, canvasElement);
         const imageLayers = window.PhotoCookLayerManager.getLayers();
 
+// Delete selected text layer when its X button is clicked
+const deleteLayer = [...imageLayers].reverse().find(layer =>
+    layer.type === 'text' &&
+    layer.isSelected &&
+    layer.deleteBounds &&
+    Math.hypot(pos.x - layer.deleteBounds.x, pos.y - layer.deleteBounds.y) <= layer.deleteBounds.radius
+);
+
+if (deleteLayer) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    window.PhotoCookLayerManager.removeLayer(deleteLayer);
+    window.PhotoCookText?.onLayerDeleted?.(deleteLayer);
+
+    isDraggingHandle = false;
+    isDraggingLayer = false;
+    activeLayerForHandle = null;
+
+    redrawCanvas();
+    return;
+}
+
+// 1. Check if user clicked/touched on any layer's handle
+
         // 1. Check if user clicked/touched on any layer's handle
         const handleLayer = imageLayers.find(l => l.isSelected && l.handleBounds && Math.hypot(pos.x - l.handleBounds.x, pos.y - l.handleBounds.y) <= l.handleBounds.radius);
         if (handleLayer) {
@@ -171,18 +218,23 @@ window.PhotoCookInteraction = (() => {
             }
         }
 
-        if (clickedLayer) {
+    if (clickedLayer) {
             if (!clickedLayer.isSelected) {
                 imageLayers.forEach(layer => {
                     layer.isSelected = (layer === clickedLayer);
                 });
             }
 
+            // Synchronize the Text Tool with the selected text layer
+            if (clickedLayer.type === 'text' && window.PhotoCookText) {
+                window.PhotoCookText.selectTextLayer(clickedLayer);
+            }
+
             isDraggingLayer = true;
             dragStartX = pos.x;
             dragStartY = pos.y;
             redrawCanvas();
-        }
+      }
     }
 
     function handleWindowStart(e) {

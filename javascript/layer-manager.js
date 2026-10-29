@@ -49,6 +49,38 @@ window.PhotoCookLayerManager = (() => {
         layer.height = newHeight;
     }
 
+
+    // Inside PhotoCookLayerManager return object, add support for text objects:
+    function addTextLayer(textConfig, canvasWidth, canvasHeight) {
+        imageLayers.forEach(l => l.isSelected = false);
+
+        // Temp canvas context to measure accurate bounds
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.font = `${textConfig.fontSize || 48}px ${textConfig.fontFamily || 'Arial'}`;
+        
+        const textMetrics = tempCtx.measureText(textConfig.text || 'Your paragraph text');
+        const textWidth = textMetrics.width;
+        const textHeight = textConfig.fontSize || 48;
+
+        textConfig.x = (canvasWidth / 2) - (textWidth / 2);
+        textConfig.y = (canvasHeight / 2) - (textHeight / 2);
+        textConfig.width = textWidth;
+        textConfig.height = textHeight;
+        textConfig.isSelected = true;
+
+        imageLayers.push(textConfig);
+        return textConfig;
+    }
+
+    function removeLayer(targetLayer) {
+        const index = imageLayers.indexOf(targetLayer);
+        if (index === -1 || targetLayer.type !== 'text') return false;
+
+        imageLayers.splice(index, 1);
+        return true;
+    }
+
     function clearLayers() {
         imageLayers = [];
     }
@@ -56,9 +88,11 @@ window.PhotoCookLayerManager = (() => {
     return {
         getLayers,
         addLayer,
+        addTextLayer,
         getSelectedLayer,
         deselectAll,
         updateSelectedLayerImage,
+        removeLayer,
         clearLayers
     };
 })();
