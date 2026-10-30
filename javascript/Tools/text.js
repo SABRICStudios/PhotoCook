@@ -594,6 +594,9 @@ window.PhotoCookText = (() => {
             renderToolbarUI();
             bindToolbarEvents();
 
+            document.getElementById('text-tb-add-btn').style.display =
+                activeTab === 'basic' ? '' : 'none';
+
             ['basic', 'style', 'adjust'].forEach(tab => {
                 document.getElementById(`tab-${tab}-btn`).classList.toggle('active', tab === activeTab);
                 document.getElementById(`section-${tab}`).classList.toggle('active', tab === activeTab);

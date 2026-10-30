@@ -25,7 +25,8 @@ window.PhotoCookLayerManager = (() => {
             width: drawWidth,
             height: drawHeight,
             isSelected: true,
-            handleBounds: null
+            handleBounds: null,
+            adjustments: {}
         };
 
         imageLayers.push(newLayer);
@@ -81,6 +82,30 @@ window.PhotoCookLayerManager = (() => {
         return true;
     }
 
+    
+    function getSelectedLayerAdjustments() {
+        const layer = getSelectedLayer();
+        if (!layer || !layer.img) return null;
+        return { ...(layer.adjustments || {}) };
+    }
+
+    function updateSelectedLayerAdjustments(newAdjustments) {
+        const layer = getSelectedLayer();
+        if (!layer || !layer.img || !newAdjustments || typeof newAdjustments !== 'object') return false;
+
+        layer.adjustments = { ...(layer.adjustments || {}), ...newAdjustments };
+        return true;
+    }
+
+    function resetSelectedLayerAdjustments() {
+        const layer = getSelectedLayer();
+        if (!layer || !layer.img) return false;
+
+        layer.adjustments = {};
+        return true;
+    }
+
+
     function clearLayers() {
         imageLayers = [];
     }
@@ -92,6 +117,9 @@ window.PhotoCookLayerManager = (() => {
         getSelectedLayer,
         deselectAll,
         updateSelectedLayerImage,
+        getSelectedLayerAdjustments,
+        updateSelectedLayerAdjustments,
+        resetSelectedLayerAdjustments,
         removeLayer,
         clearLayers
     };

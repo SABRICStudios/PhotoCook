@@ -434,8 +434,10 @@ window.PhotoCookEngine = (() => {
             ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
             if (layer.rotation) ctx.rotate(layer.rotation * Math.PI / 180);
 
+            const processedImage = window.PhotoCookAdjustProcessor?.getProcessedImage(layer) || layer.img;
+
             ctx.filter = layer.filterString || 'none';
-            ctx.drawImage(layer.img, -layer.width / 2, -layer.height / 2, layer.width, layer.height);
+            ctx.drawImage(processedImage, -layer.width / 2, -layer.height / 2, layer.width, layer.height);
         }
 
         ctx.restore();

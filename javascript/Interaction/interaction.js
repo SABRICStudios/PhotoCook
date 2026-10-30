@@ -169,13 +169,11 @@ window.PhotoCookInteraction = (() => {
     }
 
     function isEventOnHeaderOrToolbar(target) {
-        if (!target) return false;
-        const header = document.querySelector('header');
-        const toolbar = document.getElementById('toolbar');
-        const textToolbar = document.getElementById('text-sub-toolbar');
-        return (header && (header === target || header.contains(target))) ||
-            (toolbar && (toolbar === target || toolbar.contains(target))) ||
-            (textToolbar && (textToolbar === target || textToolbar.contains(target)));
+        if (!target || !(target instanceof Element)) return false;
+
+        return Boolean(target.closest(
+            'header, #toolbar, #text-sub-toolbar, #adjust-sub-toolbar'
+        ));
     }
 
     function getCanvasMousePos(e, canvas) {

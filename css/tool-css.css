@@ -745,3 +745,338 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+
+
+
+/* PhotoCook — Compact Horizontal Adjust Tool*/
+
+#adjust-sub-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    background: #17161b;
+    border-top: 1px solid #29282d;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Header */
+
+.adjust-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 24px;
+}
+
+.adjust-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #a0a0ae;
+}
+
+.adjust-close-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #a0a0ae;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.adjust-close-btn:hover {
+    background: #29282d;
+    color: #ffffff;
+}
+
+/* Horizontal Section Tabs */
+
+.adjust-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    cursor: grab;
+    user-select: none;
+}
+
+.adjust-tabs::-webkit-scrollbar,
+.adjust-options::-webkit-scrollbar {
+    display: none;
+}
+
+.adjust-tabs:active,
+.adjust-options:active {
+    cursor: grabbing;
+}
+
+.adjust-tab {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 18px;
+    border: 1px solid #34343d;
+    border-radius: 7px;
+    background: #25252d;
+    color: #a0a0ae;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.adjust-tab:hover {
+    background: #353540;
+    color: #ffffff;
+}
+
+.adjust-tab.active {
+    background: #30283e;
+    border-color: #8b5cf6;
+    color: #ffffff;
+}
+
+/* Active Adjustment Slider */
+
+.adjust-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 40px;
+}
+
+.adjust-slider-label {
+    flex: 0 0 90px;
+    min-width: 0;
+    color: #e5e5eb;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#adjust-active-slider {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    margin: 0;
+    border-radius: 10px;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(
+        to right,
+        #8b5cf6 0%,
+        #8b5cf6 var(--adjust-progress, 50%),
+        #34343d var(--adjust-progress, 50%),
+        #34343d 100%
+    );
+}
+
+#adjust-active-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 17px;
+    height: 17px;
+    border: 3px solid #8b5cf6;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: grab;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+}
+
+#adjust-active-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 3px solid #8b5cf6;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: grab;
+}
+
+#adjust-active-slider:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: 7px;
+}
+
+.adjust-slider-value {
+    flex: 0 0 40px;
+    text-align: right;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Horizontal Adjustment Options */
+
+.adjust-options {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 3px 0 5px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    cursor: grab;
+    user-select: none;
+}
+
+.adjust-option {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 14px;
+    border: 1px solid #34343d;
+    border-radius: 7px;
+    background: #25252d;
+    color: #a0a0ae;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.adjust-option:hover {
+    background: #353540;
+    color: #ffffff;
+}
+
+.adjust-option.active {
+    background: #30283e;
+    border-color: #8b5cf6;
+    color: #ffffff;
+}
+
+/* Footer */
+
+.adjust-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 9px;
+    border-top: 1px solid #29282d;
+}
+
+.adjust-reset-btn,
+.adjust-done-btn {
+    min-height: 36px;
+    padding: 0 20px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.adjust-reset-btn {
+    background: #25252d;
+    color: #e5e5eb;
+    border: 1px solid #34343d;
+}
+
+.adjust-reset-btn:hover {
+    background: #353540;
+}
+
+.adjust-done-btn {
+    background: #8b5cf6;
+    color: #ffffff;
+    border: 1px solid #8b5cf6;
+}
+
+.adjust-done-btn:hover {
+    background: #7c3aed;
+}
+
+/* Mobile Responsiveness */
+
+@media (max-width: 600px) {
+    #adjust-sub-toolbar {
+        padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+        gap: 9px;
+    }
+
+    .adjust-tab {
+        min-height: 32px;
+        padding: 0 14px;
+        font-size: 11px;
+    }
+
+    .adjust-slider-row {
+        gap: 9px;
+        min-height: 36px;
+    }
+
+    .adjust-slider-label {
+        flex-basis: 76px;
+        font-size: 11px;
+    }
+
+    .adjust-slider-value {
+        flex-basis: 32px;
+        font-size: 11px;
+    }
+
+    .adjust-option {
+        min-height: 32px;
+        padding: 0 12px;
+        font-size: 11px;
+    }
+
+    .adjust-reset-btn,
+    .adjust-done-btn {
+        min-height: 34px;
+        padding: 0 16px;
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    #adjust-sub-toolbar {
+        gap: 6px;
+        padding: 7px 12px;
+        max-height: 65dvh;
+        overflow-y: auto;
+    }
+
+    .adjust-tab,
+    .adjust-option {
+        min-height: 28px;
+    }
+
+    .adjust-footer {
+        padding-top: 5px;
+    }
+}

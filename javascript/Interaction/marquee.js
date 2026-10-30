@@ -54,13 +54,11 @@ window.PhotoCookMarquee = (() => {
     }
 
     function isEventOnHeaderOrToolbar(target) {
-        if (!target) return false;
-        const header = document.querySelector('header');
-        const toolbar = document.getElementById('toolbar');
-        const textToolbar = document.getElementById('text-sub-toolbar');
-        return (header && (header === target || header.contains(target))) ||
-               (toolbar && (toolbar === target || toolbar.contains(target))) ||
-               (textToolbar && (textToolbar === target || textToolbar.contains(target)));
+        if (!target || !(target instanceof Element)) return false;
+
+        return Boolean(target.closest(
+            'header, #toolbar, #text-sub-toolbar, #adjust-sub-toolbar'
+        ));
     }
 
     function pageToCanvasPos(px, py) {
@@ -182,7 +180,7 @@ window.PhotoCookMarquee = (() => {
     }
 
     function handleStart(e) {
-        if (!canvasElement) return;
+        if (!canvasElement || window.PhotoCookToolState?.isToolOpen()) return;
 
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;

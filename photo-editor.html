@@ -28,6 +28,7 @@
             <button id="add-img">+</button>
             <button id="crop" class="tool-btn">Crop</button>
             <button id="text" class="tool-btn">Text</button>
+            <button id="adjust" class="tool-btn">Adjust</button>
         </div>
 
                    <!--Javascript area -->
@@ -47,6 +48,8 @@
 
         <script src="javascript/Tools/crop.js"></script>
         <script src="javascript/Tools/text.js"></script>
+        <script src="javascript/Tools/Adjust/adjust.js"></script>
+        <script src="javascript/Tools/Adjust/adjust-processor.js"></script>
 
 
 
@@ -127,8 +130,14 @@
                             window.PhotoCookLayerManager.addTextLayer(textConfig, actualWidth, actualHeight);
                             window.PhotoCookInteraction.redrawCanvas();
                         }
+
+                        
                     });
                 }
+
+                if (window.PhotoCookAdjust) {
+                    window.PhotoCookAdjust.init('adjust');
+                }        
 
                 const backBtn = document.getElementById('back-btn');
                 if (backBtn) {
