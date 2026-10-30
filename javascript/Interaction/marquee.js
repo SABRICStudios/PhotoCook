@@ -194,6 +194,21 @@ window.PhotoCookMarquee = (() => {
         const canvasPos = pageToCanvasPos(coords.clientX, coords.clientY);
         const layers = getLayersCallback ? getLayersCallback() : [];
 
+        // Let the Interaction module handle text edit/delete buttons.
+        const clickedTextAction = layers.some(layer => {
+            if (layer.type !== 'text' || !layer.isSelected) return false;
+
+            return [layer.editBounds, layer.deleteBounds].some(bounds =>
+                bounds &&
+                Math.hypot(
+                    canvasPos.x - bounds.x,
+                    canvasPos.y - bounds.y
+                ) <= bounds.radius
+            );
+        });
+
+        if (clickedTextAction) return;
+
         let clickedOnItem = false;
         for (let i = layers.length - 1; i >= 0; i--) {
             const layer = layers[i];
@@ -303,13 +318,6 @@ window.PhotoCookMarquee = (() => {
                 }
             }
         });
-
-       
-    
-        // Edit the selected text layer without toggling the toolbar closed
-        if (selectedTextLayer && window.PhotoCookText) {
-            window.PhotoCookText.selectTextLayer(selectedTextLayer);
-        }
 
         if (redrawCallback) {
             redrawCallback(false, (ctx) => {

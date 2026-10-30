@@ -181,7 +181,7 @@ window.PhotoCookText = (() => {
                     <button type="button" id="tab-adjust-btn" class="text-tb-tab">ADJUST</button>
                 </div>
                 <div class="text-tb-actions">
-                    <button type="button" id="text-tb-add-btn">+ Add Text</button>
+                    <button type="button" id="text-tb-add-btn" style="display:${activeTab === 'basic' ? '' : 'none'}">+ Add Text</button>
                     <button type="button" id="text-tb-close-btn" class="text-tb-icon-btn" title="Close">✕</button>
                 </div>
             </div>
@@ -341,13 +341,15 @@ window.PhotoCookText = (() => {
         tabs.forEach(tab => {
             $(`tab-${tab}-btn`).addEventListener('click', () => {
                 activeTab = tab;
+
                 tabs.forEach(name => {
                     $(`tab-${name}-btn`).classList.toggle('active', name === tab);
                     $(`section-${name}`).classList.toggle('active', name === tab);
                 });
+
+                $('text-tb-add-btn').style.display = tab === 'basic' ? '' : 'none';
             });
         });
-
 
 
         // Style subsection navigation

@@ -89,9 +89,37 @@ window.PhotoCookInteraction = (() => {
 
                         // Delete button — text layers only
                         if (layer.type === 'text') {
+                            // Edit button — top-left corner of selected text layer
+                            const editX = layer.x;
+                            const editY = layer.y;
+                            const editRadius = 45;
+
+                            layer.editBounds = { x: editX, y: editY, radius: editRadius };
+
+                            targetCtx.save();
+                            targetCtx.beginPath();
+                            targetCtx.arc(editX, editY, editRadius, 0, Math.PI * 2);
+                            targetCtx.fillStyle = '#8b5cf6';
+                            targetCtx.fill();
+
+                            targetCtx.strokeStyle = '#ffffff';
+                            targetCtx.lineWidth = 4;
+                            targetCtx.lineCap = 'round';
+                            targetCtx.lineJoin = 'round';
+
+                            // Pencil icon
+                            targetCtx.beginPath();
+                            targetCtx.moveTo(editX - 17, editY + 10);
+                            targetCtx.lineTo(editX + 10, editY - 17);
+                            targetCtx.lineTo(editX + 17, editY - 10);
+                            targetCtx.lineTo(editX - 10, editY + 17);
+                            targetCtx.closePath();
+                            targetCtx.stroke();
+
+                            targetCtx.restore();
                             const deleteX = layer.x + layer.width;
                             const deleteY = layer.y;
-                            const deleteRadius = 28;
+                            const deleteRadius = 45;
 
                             layer.deleteBounds = { x: deleteX, y: deleteY, radius: deleteRadius };
 
@@ -105,20 +133,21 @@ window.PhotoCookInteraction = (() => {
                             targetCtx.lineWidth = 5;
                             targetCtx.lineCap = 'round';
                             targetCtx.beginPath();
-                            targetCtx.moveTo(deleteX - 9, deleteY - 9);
-                            targetCtx.lineTo(deleteX + 9, deleteY + 9);
-                            targetCtx.moveTo(deleteX + 9, deleteY - 9);
-                            targetCtx.lineTo(deleteX - 9, deleteY + 9);
+                            targetCtx.moveTo(deleteX - 15, deleteY - 15);
+                            targetCtx.lineTo(deleteX + 15, deleteY + 15);
+                            targetCtx.moveTo(deleteX + 15, deleteY - 15);
+                            targetCtx.lineTo(deleteX - 15, deleteY + 15);
                             targetCtx.stroke();
                             targetCtx.restore();
                         } else {
-                            layer.deleteBounds = null;
-                        }
-
+                                layer.deleteBounds = null;
+                                layer.editBounds = null;
+                            }
                     } else {
-                        layer.handleBounds = null;
-                        layer.deleteBounds = null;
-                    }
+                            layer.handleBounds = null;
+                            layer.deleteBounds = null;
+                            layer.editBounds = null;
+                        }
                 });
 
                 // 4. Render custom active overlay if provided
@@ -173,30 +202,61 @@ window.PhotoCookInteraction = (() => {
         const pos = getCanvasMousePos(e, canvasElement);
         const imageLayers = window.PhotoCookLayerManager.getLayers();
 
-// Delete selected text layer when its X button is clicked
-const deleteLayer = [...imageLayers].reverse().find(layer =>
-    layer.type === 'text' &&
-    layer.isSelected &&
-    layer.deleteBounds &&
-    Math.hypot(pos.x - layer.deleteBounds.x, pos.y - layer.deleteBounds.y) <= layer.deleteBounds.radius
-);
 
-if (deleteLayer) {
-    e.preventDefault();
-    e.stopPropagation();
 
-    window.PhotoCookLayerManager.removeLayer(deleteLayer);
-    window.PhotoCookText?.onLayerDeleted?.(deleteLayer);
 
-    isDraggingHandle = false;
-    isDraggingLayer = false;
-    activeLayerForHandle = null;
+        // Open Text Tool only when the edit icon is clicked
 
-    redrawCanvas();
-    return;
-}
+        // Check text action buttons — Delete takes priority
+        const selectedTextLayers = [...imageLayers].reverse().filter(layer =>
+            layer.type === 'text' && layer.isSelected
+        );
 
-// 1. Check if user clicked/touched on any layer's handle
+        // Delete button
+        const deleteLayer = selectedTextLayers.find(layer =>
+            layer.deleteBounds &&
+            Math.hypot(
+                pos.x - layer.deleteBounds.x,
+                pos.y - layer.deleteBounds.y
+            ) <= layer.deleteBounds.radius
+        );
+
+        if (deleteLayer) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.PhotoCookLayerManager.removeLayer(deleteLayer);
+            window.PhotoCookText?.onLayerDeleted?.(deleteLayer);
+
+            isDraggingHandle = false;
+            isDraggingLayer = false;
+            activeLayerForHandle = null;
+
+            redrawCanvas();
+            return;
+        }
+
+        // Edit button
+        const editLayer = selectedTextLayers.find(layer =>
+            layer.editBounds &&
+            Math.hypot(
+                pos.x - layer.editBounds.x,
+                pos.y - layer.editBounds.y
+            ) <= layer.editBounds.radius
+        );
+
+        if (editLayer) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            isDraggingHandle = false;
+            isDraggingLayer = false;
+            activeLayerForHandle = null;
+
+            window.PhotoCookText?.selectTextLayer(editLayer);
+            return;
+        }
+
 
         // 1. Check if user clicked/touched on any layer's handle
         const handleLayer = imageLayers.find(l => l.isSelected && l.handleBounds && Math.hypot(pos.x - l.handleBounds.x, pos.y - l.handleBounds.y) <= l.handleBounds.radius);
@@ -223,11 +283,6 @@ if (deleteLayer) {
                 imageLayers.forEach(layer => {
                     layer.isSelected = (layer === clickedLayer);
                 });
-            }
-
-            // Synchronize the Text Tool with the selected text layer
-            if (clickedLayer.type === 'text' && window.PhotoCookText) {
-                window.PhotoCookText.selectTextLayer(clickedLayer);
             }
 
             isDraggingLayer = true;
