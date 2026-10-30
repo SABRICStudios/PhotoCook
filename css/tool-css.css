@@ -795,6 +795,7 @@
     color: #a0a0ae;
     font-size: 22px;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .adjust-close-btn:hover {
@@ -853,8 +854,8 @@
 }
 
 .adjust-tab.active {
-    background: #30283e;
-    border-color: #8b5cf6;
+    background: #34343f;
+    border-color: #a0a0b5;
     color: #ffffff;
 }
 
@@ -884,6 +885,7 @@
     min-width: 0;
     height: 6px;
     margin: 0;
+    border: none;
     border-radius: 10px;
     appearance: none;
     -webkit-appearance: none;
@@ -891,8 +893,8 @@
     cursor: pointer;
     background: linear-gradient(
         to right,
-        #8b5cf6 0%,
-        #8b5cf6 var(--adjust-progress, 50%),
+        #e5e5eb 0%,
+        #e5e5eb var(--adjust-progress, 50%),
         #34343d var(--adjust-progress, 50%),
         #34343d 100%
     );
@@ -903,7 +905,7 @@
     -webkit-appearance: none;
     width: 17px;
     height: 17px;
-    border: 3px solid #8b5cf6;
+    border: 3px solid #e5e5eb;
     border-radius: 50%;
     background: #ffffff;
     cursor: grab;
@@ -913,14 +915,14 @@
 #adjust-active-slider::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    border: 3px solid #8b5cf6;
+    border: 3px solid #e5e5eb;
     border-radius: 50%;
     background: #ffffff;
     cursor: grab;
 }
 
 #adjust-active-slider:focus-visible {
-    outline: 2px solid #a78bfa;
+    outline: 2px solid #a0a0b5;
     outline-offset: 7px;
 }
 
@@ -974,8 +976,8 @@
 }
 
 .adjust-option.active {
-    background: #30283e;
-    border-color: #8b5cf6;
+    background: #34343f;
+    border-color: #a0a0b5;
     color: #ffffff;
 }
 
@@ -998,7 +1000,7 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .adjust-reset-btn {
@@ -1012,13 +1014,25 @@
 }
 
 .adjust-done-btn {
-    background: #8b5cf6;
-    color: #ffffff;
-    border: 1px solid #8b5cf6;
+    background: #ffffff;
+    color: #0f0f11;
+    border: 1px solid #ffffff;
 }
 
 .adjust-done-btn:hover {
-    background: #7c3aed;
+    background: #e5e5eb;
+    border-color: #e5e5eb;
+}
+
+/* Keyboard Accessibility */
+
+.adjust-tab:focus-visible,
+.adjust-option:focus-visible,
+.adjust-reset-btn:focus-visible,
+.adjust-done-btn:focus-visible,
+.adjust-close-btn:focus-visible {
+    outline: 2px solid #a0a0b5;
+    outline-offset: 2px;
 }
 
 /* Mobile Responsiveness */
@@ -1062,6 +1076,29 @@
         padding: 0 16px;
     }
 }
+
+/* Small Mobile Screens */
+
+@media (max-width: 360px) {
+    #adjust-sub-toolbar {
+        padding-left: 9px;
+        padding-right: 9px;
+    }
+
+    .adjust-slider-row {
+        gap: 7px;
+    }
+
+    .adjust-slider-label {
+        flex-basis: 68px;
+    }
+
+    .adjust-slider-value {
+        flex-basis: 28px;
+    }
+}
+
+/* Landscape Mobile Screens */
 
 @media (max-height: 500px) and (orientation: landscape) {
     #adjust-sub-toolbar {
