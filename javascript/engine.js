@@ -5,6 +5,70 @@ window.PhotoCookEngine = (() => {
     let canvasRef = null;
     let ctxRef = null;
 
+    const bgRenderCache = new WeakMap();
+        let bgPreviewLayer = null;
+        let bgPreviewMask = null;
+        let bgPreviewRevision = 0;
+
+        function setBGPreview(layer, maskData) {
+            bgPreviewLayer = layer || null;
+            bgPreviewMask = maskData || null;
+            bgPreviewRevision++;
+
+            window.PhotoCookInteraction?.redrawCanvas?.();
+        }
+
+        function clearBGPreview() {
+            bgPreviewLayer = null;
+            bgPreviewMask = null;
+            bgPreviewRevision++;
+
+            window.PhotoCookInteraction?.redrawCanvas?.();
+        }
+
+
+    function getMaskedImage(layer, processedImage) {
+        const isPreview = layer === bgPreviewLayer && bgPreviewMask;
+        const maskData = isPreview ? bgPreviewMask : layer.bgMask;
+
+        if (!maskData || !window.PhotoCookBGMask) {
+            return processedImage;
+        }
+
+        const { mask, width, height } = maskData;
+        const cached = bgRenderCache.get(layer);
+        const revision = isPreview ? bgPreviewRevision : 0;
+
+        if (
+            cached &&
+            cached.image === processedImage &&
+            cached.mask === mask &&
+            cached.width === width &&
+            cached.height === height &&
+            cached.revision === revision
+        ) {
+            return cached.result;
+        }
+
+        const result = window.PhotoCookBGMask.apply(
+            processedImage,
+            mask,
+            width,
+            height
+        );
+
+        bgRenderCache.set(layer, {
+            image: processedImage,
+            mask,
+            width,
+            height,
+            revision,
+            result
+        });
+
+        return result;
+    }
+
     /**
      * Initialize engine with the active workspace canvas
      */
@@ -433,12 +497,18 @@ window.PhotoCookEngine = (() => {
             // Image layer rendering
             ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
             if (layer.rotation) ctx.rotate(layer.rotation * Math.PI / 180);
-
             const processedImage = window.PhotoCookAdjustProcessor?.getProcessedImage(layer) || layer.img;
 
-            ctx.filter = layer.filterString || 'none';
-            ctx.drawImage(processedImage, -layer.width / 2, -layer.height / 2, layer.width, layer.height);
-        }
+            let finalImage = processedImage;
+
+            try {
+                finalImage = getMaskedImage(layer, processedImage);
+            } catch (error) {
+                console.error("[PhotoCook BG] Mask rendering failed:", error);
+            }
+
+        ctx.filter = layer.filterString || 'none';
+        ctx.drawImage(finalImage, -layer.width / 2, -layer.height / 2, layer.width, layer.height);        }
 
         ctx.restore();
     }
@@ -492,9 +562,7 @@ window.PhotoCookEngine = (() => {
         render();
     }
 
-    /**
-     * Tool Action: Rotate Active Layer by degrees
-     */
+    /*Tool Action: Rotate Active Layer by degrees*/
     function rotateSelectedLayer(deg = 90) {
         if (!window.PhotoCookLayerManager) return;
 
@@ -510,6 +578,8 @@ window.PhotoCookEngine = (() => {
         render,
         applyCrop,
         applyFilterToSelectedLayer,
-        rotateSelectedLayer
+        rotateSelectedLayer,
+        setBGPreview,
+        clearBGPreview
     };
 })();

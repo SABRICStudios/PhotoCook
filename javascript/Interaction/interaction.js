@@ -3,10 +3,27 @@ window.PhotoCookInteraction = (() => {
     'use strict';
 
     let canvasElement = null;
+    let canvasViewport = null;
+    let canvasWorkspace = null;
 
     let isDraggingHandle = false;
     let isDraggingLayer = false;
-    let activeLayerForHandle = null; // Track which layer's handle is being pulled
+    let bgBrushEditing = false;
+
+    // Canvas Zoom & Pan
+    let zoomLevel = 1;
+    const MIN_ZOOM = 0.25;
+    const MAX_ZOOM = 5;
+    const ZOOM_STEP = 0.25;
+
+    let panX = 0;
+    let panY = 0;
+    let panEnabled = false;
+    let isPanning = false;
+    let panStartX = 0;
+    let panStartY = 0;
+    let activePanTouchId = null;
+    let activeLayerForHandle = null; 
     let dragStartX = 0;
     let dragStartY = 0;
 
@@ -18,15 +35,13 @@ window.PhotoCookInteraction = (() => {
 
         const imageLayers = window.PhotoCookLayerManager?.getLayers() || [];
 
-// Render image and text layers through the central engine.
 
-        // 2. Draw every image layer
 // 2. Let PhotoCookEngine render all layers (both images and text safely)
         if (window.PhotoCookEngine) {
             window.PhotoCookEngine.render(isExporting, (targetCtx) => {
                 // 3. Draw selection borders & handles for selected layers over the engine render
                 imageLayers.forEach((layer) => {
-                    if (layer.isSelected && !isExporting) {
+                    if (layer.isSelected && !isExporting && !bgBrushEditing) {
                         // --- 5X SCALED PROFESSIONAL ACCENT BORDER ---
                         targetCtx.strokeStyle = '#2563eb'; 
                         targetCtx.lineWidth = 10;          
@@ -158,6 +173,24 @@ window.PhotoCookInteraction = (() => {
         }
     }
 
+    function setBGBrushEditing(enabled) {
+        bgBrushEditing = Boolean(enabled);
+
+        // Stop any existing layer movement.
+        isDraggingHandle = false;
+        isDraggingLayer = false;
+        activeLayerForHandle = null;
+
+        redrawCanvas();
+    }
+
+    function isBGBrushEditing() {
+        return bgBrushEditing;
+    }
+
+    function isPanEnabled() {
+        return panEnabled;
+    }
 
     function getClientCoords(e) {
         if (e.touches && e.touches.length > 0) {
@@ -172,7 +205,7 @@ window.PhotoCookInteraction = (() => {
         if (!target || !(target instanceof Element)) return false;
 
         return Boolean(target.closest(
-            'header, #toolbar, #text-sub-toolbar, #adjust-sub-toolbar'
+            'header, #toolbar, #text-sub-toolbar, #adjust-sub-toolbar, #bg-sub-toolbar'
         ));
     }
 
@@ -188,6 +221,8 @@ window.PhotoCookInteraction = (() => {
     }
 
     function handleStart(e) {
+        if (panEnabled) return;
+        if (bgBrushEditing) return;
         if (!canvasElement || !window.PhotoCookLayerManager) return;
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
@@ -291,6 +326,7 @@ window.PhotoCookInteraction = (() => {
     }
 
     function handleWindowStart(e) {
+        if (bgBrushEditing) return;
         if (!canvasElement || !window.PhotoCookLayerManager) return;
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
@@ -312,6 +348,7 @@ window.PhotoCookInteraction = (() => {
     }
 
     function handleMove(e) {
+        if (bgBrushEditing) return;
         if ((!isDraggingHandle && !isDraggingLayer) || !canvasElement || !window.PhotoCookLayerManager) return;
         if (e.type === 'touchmove') {
             e.preventDefault();
@@ -345,8 +382,161 @@ window.PhotoCookInteraction = (() => {
         activeLayerForHandle = null;
     }
 
+    function updateViewport() {
+    if (!canvasViewport) return;
+
+    canvasViewport.style.transform =
+        `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+
+    const zoomLabel = document.getElementById('zoom-level');
+    if (zoomLabel) zoomLabel.textContent = `${Math.round(zoomLevel * 100)}%`;
+}
+
+function setZoom(value) {
+    zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
+    updateViewport();
+}
+
+function setPanMode(enabled) {
+    panEnabled = Boolean(enabled);
+    if (panEnabled) {
+    }
+    isPanning = false;
+    activePanTouchId = null;
+
+    handleEnd();
+
+    const button = document.getElementById('pan-toggle');
+    button?.classList.toggle('active', panEnabled);
+    button?.setAttribute('aria-pressed', String(panEnabled));
+
+    if (canvasViewport) {
+        canvasViewport.style.cursor = panEnabled ? 'grab' : '';
+    }
+}
+
+function startPan(e) {
+    if (!panEnabled || isPanning) return;
+    if (e.type === 'mousedown' && e.button !== 0) return;
+
+    const touch = e.changedTouches?.[0];
+    const point = touch || e;
+
+    if (!Number.isFinite(point.clientX)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    isPanning = true;
+    activePanTouchId = touch ? touch.identifier : null;
+    panStartX = point.clientX;
+    panStartY = point.clientY;
+
+    canvasViewport.style.cursor = 'grabbing';
+}
+
+function movePan(e) {
+    if (!isPanning) return;
+
+    let point = e;
+
+    if (activePanTouchId !== null) {
+        point = Array.from(e.touches || []).find(
+            touch => touch.identifier === activePanTouchId
+        );
+        if (!point) return;
+    } else if (e.type !== 'mousemove') {
+        return;
+    }
+
+    e.preventDefault();
+
+    panX += point.clientX - panStartX;
+    panY += point.clientY - panStartY;
+
+    panStartX = point.clientX;
+    panStartY = point.clientY;
+
+    updateViewport();
+}
+
+function endPan(e) {
+    if (!isPanning) return;
+
+    if (activePanTouchId !== null && e?.changedTouches) {
+        const ended = Array.from(e.changedTouches).some(
+            touch => touch.identifier === activePanTouchId
+        );
+        if (!ended) return;
+    }
+
+    isPanning = false;
+    activePanTouchId = null;
+
+    if (canvasViewport) {
+        canvasViewport.style.cursor = panEnabled ? 'grab' : '';
+    }
+}
+
+function initZoomControls() {
+    canvasViewport = document.getElementById('canvas-viewport');
+    canvasWorkspace = document.getElementById('canvas-workspace');
+
+    if (!canvasViewport || !canvasWorkspace) return;
+
+    document.getElementById('zoom-in')?.addEventListener('click', () => {
+        setZoom(zoomLevel + ZOOM_STEP);
+    });
+
+    document.getElementById('zoom-out')?.addEventListener('click', () => {
+        setZoom(zoomLevel - ZOOM_STEP);
+    });
+
+    document.getElementById('zoom-fit')?.addEventListener('click', () => {
+        panX = 0;
+        panY = 0;
+        setZoom(1);
+    });
+
+    document.getElementById('pan-toggle')?.addEventListener('click', () => {
+        setPanMode(!panEnabled);
+    });
+
+    canvasViewport.addEventListener('mousedown', startPan);
+    canvasViewport.addEventListener('touchstart', startPan, { passive: false });
+
+    window.addEventListener('mousemove', movePan);
+    window.addEventListener('touchmove', movePan, { passive: false });
+
+    window.addEventListener('mouseup', endPan);
+    window.addEventListener('touchend', endPan);
+    window.addEventListener('touchcancel', endPan);
+
+    updateViewport();
+}
+
     function init(canvas) {
-        canvasElement = canvas;
+        canvasElement = canvas;  
+        initZoomControls(); 
+        function fitCanvasToWorkspace() {
+            if (!canvasElement || !canvasWorkspace) return;
+
+            const maxWidth = window.innerWidth * 0.85;
+            const maxHeight = window.innerHeight * 0.68;
+
+            const scale = Math.min(
+                maxWidth / canvasElement.width,
+                maxHeight / canvasElement.height,
+                1
+            );
+
+            canvasElement.style.width = `${canvasElement.width * scale}px`;
+            canvasElement.style.height = `${canvasElement.height * scale}px`;
+        }
+
+        fitCanvasToWorkspace();
+        window.addEventListener("resize", fitCanvasToWorkspace);
+
         isDraggingHandle = false;
         isDraggingLayer = false;
 
@@ -366,6 +556,11 @@ window.PhotoCookInteraction = (() => {
 
     return {
         init,
-        redrawCanvas
+        redrawCanvas,
+        setBGBrushEditing,
+        isBGBrushEditing,
+        setZoom,
+        setPanMode,
+        isPanEnabled
     };
 })();

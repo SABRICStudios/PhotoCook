@@ -180,7 +180,11 @@ window.PhotoCookMarquee = (() => {
     }
 
     function handleStart(e) {
-        if (!canvasElement || window.PhotoCookToolState?.isToolOpen()) return;
+        if (!canvasElement) return;
+
+        if (window.PhotoCookToolState?.isToolOpen() ||
+            window.PhotoCookInteraction?.isPanEnabled?.() ||
+            window.PhotoCookBGRemover?.isOpen?.()) return;
 
         const coords = getClientCoords(e);
         const target = document.elementFromPoint(coords.clientX, coords.clientY) || e.target;
@@ -253,6 +257,12 @@ window.PhotoCookMarquee = (() => {
     }
 
     function handleMove(e) {
+        if (window.PhotoCookBGRemover?.isOpen?.() ||
+            window.PhotoCookInteraction?.isPanEnabled?.()) {
+            cancelMarquee();
+            return;
+        }
+
         if (!isMarqueeActive) return;
         if (e.type === 'touchmove') {
             e.preventDefault();
@@ -265,6 +275,12 @@ window.PhotoCookMarquee = (() => {
     }
 
     function handleEnd(e) {
+        if (window.PhotoCookBGRemover?.isOpen?.() ||
+            window.PhotoCookInteraction?.isPanEnabled?.()) {
+            cancelMarquee();
+            return;
+        }
+
         if (!isMarqueeActive) return;
 
         isMarqueeActive = false;

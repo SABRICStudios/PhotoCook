@@ -23,12 +23,24 @@
             </button>
             <button id="export-btn">Export</button>
         </header>
-        <canvas id="canvas"></canvas>
+        <div id="canvas-workspace">
+            <div id="canvas-viewport">
+                <canvas id="canvas"></canvas>
+            </div>
+                <div id="canvas-zoom-controls">
+                    <button id="zoom-out" title="Zoom Out">−</button>
+                    <span id="zoom-level">100%</span>
+                    <button id="zoom-in" title="Zoom In">+</button>
+                    <button id="zoom-fit" title="Fit Canvas">Fit</button>
+                    <button id="pan-toggle" title="Pan Canvas">✋</button>
+                </div>
+        </div>
         <div id="toolbar">
             <button id="add-img">+</button>
             <button id="crop" class="tool-btn">Crop</button>
             <button id="text" class="tool-btn">Text</button>
             <button id="adjust" class="tool-btn">Adjust</button>
+            <button id="bg-remover" class="tool-btn">BG-Remover</button>
         </div>
 
                    <!--Javascript area -->
@@ -50,6 +62,11 @@
         <script src="javascript/Tools/text.js"></script>
         <script src="javascript/Tools/Adjust/adjust.js"></script>
         <script src="javascript/Tools/Adjust/adjust-processor.js"></script>
+
+        <script type="module" src="javascript/Tools/BG-Remover/bg-processor.js"></script>
+        <script src="javascript/Tools/BG-Remover/bg-mask.js"></script>
+        <script src="javascript/Tools/BG-Remover/bg-remover.js"></script>
+        <script src="javascript/Tools/BG-Remover/bg-brush.js"></script>
 
 
 
@@ -137,7 +154,11 @@
 
                 if (window.PhotoCookAdjust) {
                     window.PhotoCookAdjust.init('adjust');
-                }        
+                }
+                
+                if (window.PhotoCookBGRemover) {
+                    window.PhotoCookBGRemover.init('bg-remover');
+                }
 
                 const backBtn = document.getElementById('back-btn');
                 if (backBtn) {

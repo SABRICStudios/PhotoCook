@@ -2,7 +2,6 @@ body{
     margin: 0;
     padding: 0;
     background-color: #0f0f11;
-
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: none;
@@ -79,7 +78,7 @@ header {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 8vh;
+    height: 10vh;
     background-color: #16151a;
     border-top: 2px solid #29282d;
 
@@ -90,8 +89,8 @@ header {
 }
 
 #toolbar > button{
-    width: 15vw;
-    height: 7vh;
+    width: 18vw;
+    height: 8vh;
     background-color: #0f0f11;
     color: #ffffff;
     border: 2px solid #29282d;
@@ -107,15 +106,112 @@ header {
 
 /*canvas*/
 
-canvas {
-    background-color: #ffffff;
-    display: block;
-    margin: 15px auto;
+/* Main editor workspace */
 
-    max-width: 85vw;
-    max-height: 68vh;
+#canvas-workspace {
+    position: relative;
+    width: 100%;
+    height: 83vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+}
+
+#canvas-viewport {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+
+
+#canvas {
+    display: block;
+    background-color: #ffffff;
+
     width: auto;
     height: auto;
-    object-fit: contain;
+
+    max-width: none;
+    max-height: none;
+
+    margin: 0;
+    object-fit: fill;
+
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Canvas Zoom & Pan Controls */
+
+#canvas-zoom-controls {
+    position: absolute;
+    top: 14px;
+    right: 15px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px;
+    background: #16151a;
+    border: 1px solid #29282d;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#canvas-zoom-controls button {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    background: #222126;
+    color: #ffffff;
+    border: 1px solid #343239;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+#canvas-zoom-controls button:hover {
+    background: #343239;
+}
+
+#canvas-zoom-controls button.active {
+    background: #ffffff;
+    color: #0f0f11;
+}
+
+#zoom-level {
+    min-width: 48px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+    #canvas-zoom-controls {
+        top: 10px;
+        right: 10px;
+        gap: 3px;
+        padding: 4px;
+    }
+
+    #canvas-zoom-controls button {
+        min-width: 30px;
+        height: 30px;
+        padding: 0 5px;
+        font-size: 12px;
+    }
+
+    #zoom-level {
+        min-width: 40px;
+        font-size: 11px;
+    }
 }
