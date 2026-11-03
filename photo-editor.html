@@ -177,34 +177,51 @@
             })();
         </script>
         <script>
-(function () {
-    function showError(message) {
-        let box = document.getElementById("mobile-debug");
-        if (!box) {
-            box = document.createElement("pre");
-            box.id = "mobile-debug";
-            box.style.cssText =
-                "position:fixed;top:5px;left:5px;right:5px;" +
-                "max-height:40vh;overflow:auto;background:#111;color:#0f0;" +
-                "padding:12px;z-index:999999;font-size:12px;white-space:pre-wrap;";
-            document.body.appendChild(box);
-        }
-        box.textContent += message + "\n\n";
-    }
+        (function () {
+            function showError(message) {
+                let box = document.getElementById("mobile-debug");
 
-    window.addEventListener("error", function (e) {
-        showError("ERROR: " + e.message + "\n" + e.filename + ":" + e.lineno);
-    });
+                if (!box) {
+                    box = document.createElement("pre");
+                    box.id = "mobile-debug";
+                    box.style.cssText =
+                        "position:fixed;top:5px;left:5px;right:5px;" +
+                        "max-height:40vh;overflow:auto;background:#111;color:#0f0;" +
+                        "padding:12px;z-index:999999;font-size:12px;" +
+                        "white-space:pre-wrap;";
+                    document.body.appendChild(box);
+                }
 
-    window.addEventListener("unhandledrejection", function (e) {
-        showError("PROMISE ERROR: " + e.reason);
-    });
+                box.textContent += message + "\n\n";
+            }
 
-    window.addEventListener("DOMContentLoaded", function () {
-        showError("Debug panel active. Now tap BG Remover.");
-    });
-})();
-</script>
+            window.addEventListener("error", function (e) {
+                showError("ERROR: " + e.message +
+                    "\nFile: " + e.filename +
+                    "\nLine: " + e.lineno);
+            });
+
+            window.addEventListener("unhandledrejection", function (e) {
+                showError("PROMISE ERROR: " + e.reason);
+            });
+
+            document.addEventListener("DOMContentLoaded", function () {
+                showError("DEBUG PANEL ACTIVE");
+
+                const button = document.getElementById("bg-remover");
+
+                showError(button
+                    ? "BG Remover button FOUND"
+                    : "BG Remover button NOT FOUND");
+
+                document.addEventListener("click", function (e) {
+                    if (e.target.closest("#bg-remover")) {
+                        showError("BG REMOVER BUTTON TAPPED!");
+                    }
+                }, true);
+            });
+        })();
+        </script>
         
     </body>
 </html>
