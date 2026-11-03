@@ -176,6 +176,35 @@
                 }
             })();
         </script>
+        <script>
+(function () {
+    function showError(message) {
+        let box = document.getElementById("mobile-debug");
+        if (!box) {
+            box = document.createElement("pre");
+            box.id = "mobile-debug";
+            box.style.cssText =
+                "position:fixed;top:5px;left:5px;right:5px;" +
+                "max-height:40vh;overflow:auto;background:#111;color:#0f0;" +
+                "padding:12px;z-index:999999;font-size:12px;white-space:pre-wrap;";
+            document.body.appendChild(box);
+        }
+        box.textContent += message + "\n\n";
+    }
+
+    window.addEventListener("error", function (e) {
+        showError("ERROR: " + e.message + "\n" + e.filename + ":" + e.lineno);
+    });
+
+    window.addEventListener("unhandledrejection", function (e) {
+        showError("PROMISE ERROR: " + e.reason);
+    });
+
+    window.addEventListener("DOMContentLoaded", function () {
+        showError("Debug panel active. Now tap BG Remover.");
+    });
+})();
+</script>
         
     </body>
 </html>
