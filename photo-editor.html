@@ -156,8 +156,26 @@
                     window.PhotoCookAdjust.init('adjust');
                 }
                 
-                if (window.PhotoCookBGRemover) {
+                const bgButton = document.getElementById('bg-remover');
+
+                console.log('[BG TEST] Button:', bgButton);
+                console.log('[BG TEST] Remover API:', window.PhotoCookBGRemover);
+                console.log('[BG TEST] Processor:', window.PhotoCookBGProcessor);
+                console.log('[BG TEST] Mask:', window.PhotoCookBGMask);
+
+                if (window.PhotoCookBGRemover && bgButton) {
                     window.PhotoCookBGRemover.init('bg-remover');
+
+                    bgButton.addEventListener('click', () => {
+                        setTimeout(() => {
+                            console.log('[BG TEST] Panel:', document.getElementById('bg-sub-toolbar'));
+                            console.log('[BG TEST] Is open:', window.PhotoCookBGRemover.isOpen());
+                        }, 100);
+                    });
+
+                    console.log('[BG TEST] Initialization completed.');
+                } else {
+                    console.error('[BG TEST] Initialization failed.');
                 }
 
                 const backBtn = document.getElementById('back-btn');
