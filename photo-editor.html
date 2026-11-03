@@ -78,6 +78,18 @@
                 const canvas = document.querySelector('canvas');
                 if (!canvas) return;
 
+                // Initialize BG Remover independently and early.
+                try {
+                    if (window.PhotoCookBGRemover) {
+                        window.PhotoCookBGRemover.init('bg-remover');
+                        console.log('[PhotoCook] BG Remover initialized');
+                    } else {
+                        console.error('[PhotoCook] BG Remover script not loaded');
+                    }
+                } catch (error) {
+                    console.error('[PhotoCook] BG Remover initialization failed:', error);
+                }
+
                 const ctx = canvas.getContext('2d');
                 
                 // Retrieve saved settings from sessionStorage
@@ -154,28 +166,6 @@
 
                 if (window.PhotoCookAdjust) {
                     window.PhotoCookAdjust.init('adjust');
-                }
-                
-                const bgButton = document.getElementById('bg-remover');
-
-                console.log('[BG TEST] Button:', bgButton);
-                console.log('[BG TEST] Remover API:', window.PhotoCookBGRemover);
-                console.log('[BG TEST] Processor:', window.PhotoCookBGProcessor);
-                console.log('[BG TEST] Mask:', window.PhotoCookBGMask);
-
-                if (window.PhotoCookBGRemover && bgButton) {
-                    window.PhotoCookBGRemover.init('bg-remover');
-
-                    bgButton.addEventListener('click', () => {
-                        setTimeout(() => {
-                            console.log('[BG TEST] Panel:', document.getElementById('bg-sub-toolbar'));
-                            console.log('[BG TEST] Is open:', window.PhotoCookBGRemover.isOpen());
-                        }, 100);
-                    });
-
-                    console.log('[BG TEST] Initialization completed.');
-                } else {
-                    console.error('[BG TEST] Initialization failed.');
                 }
 
                 const backBtn = document.getElementById('back-btn');
