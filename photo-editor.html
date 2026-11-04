@@ -78,18 +78,6 @@
                 const canvas = document.querySelector('canvas');
                 if (!canvas) return;
 
-                // Initialize BG Remover independently and early.
-                try {
-                    if (window.PhotoCookBGRemover) {
-                        window.PhotoCookBGRemover.init('bg-remover');
-                        console.log('[PhotoCook] BG Remover initialized');
-                    } else {
-                        console.error('[PhotoCook] BG Remover script not loaded');
-                    }
-                } catch (error) {
-                    console.error('[PhotoCook] BG Remover initialization failed:', error);
-                }
-
                 const ctx = canvas.getContext('2d');
                 
                 // Retrieve saved settings from sessionStorage
@@ -167,6 +155,10 @@
                 if (window.PhotoCookAdjust) {
                     window.PhotoCookAdjust.init('adjust');
                 }
+                
+                if (window.PhotoCookBGRemover) {
+                    window.PhotoCookBGRemover.init('bg-remover');
+                }
 
                 const backBtn = document.getElementById('back-btn');
                 if (backBtn) {
@@ -175,52 +167,6 @@
                     });
                 }
             })();
-        </script>
-        <script>
-        (function () {
-            function showError(message) {
-                let box = document.getElementById("mobile-debug");
-
-                if (!box) {
-                    box = document.createElement("pre");
-                    box.id = "mobile-debug";
-                    box.style.cssText =
-                        "position:fixed;top:5px;left:5px;right:5px;" +
-                        "max-height:40vh;overflow:auto;background:#111;color:#0f0;" +
-                        "padding:12px;z-index:999999;font-size:12px;" +
-                        "white-space:pre-wrap;";
-                    document.body.appendChild(box);
-                }
-
-                box.textContent += message + "\n\n";
-            }
-
-            window.addEventListener("error", function (e) {
-                showError("ERROR: " + e.message +
-                    "\nFile: " + e.filename +
-                    "\nLine: " + e.lineno);
-            });
-
-            window.addEventListener("unhandledrejection", function (e) {
-                showError("PROMISE ERROR: " + e.reason);
-            });
-
-            document.addEventListener("DOMContentLoaded", function () {
-                showError("DEBUG PANEL ACTIVE");
-
-                const button = document.getElementById("bg-remover");
-
-                showError(button
-                    ? "BG Remover button FOUND"
-                    : "BG Remover button NOT FOUND");
-
-                document.addEventListener("click", function (e) {
-                    if (e.target.closest("#bg-remover")) {
-                        showError("BG REMOVER BUTTON TAPPED!");
-                    }
-                }, true);
-            });
-        })();
         </script>
         
     </body>
