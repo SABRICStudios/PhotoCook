@@ -5,7 +5,7 @@ const PhotoCookBGProcessor = (() => {
     const MODEL = "onnx-community/ormbg-ONNX";
 
     const CONFIG = {
-        maxInputSize: 1024,
+        maxInputSize: 768,
         dtype: "q8"
     };
 
@@ -14,9 +14,14 @@ const PhotoCookBGProcessor = (() => {
     let backend = null;
     let busy = false;
 
-    const emit = (callback, stage, message, progress = null) => {
+    const emit = (callback, stage, message, progress = null, indeterminate = false) => {
         if (typeof callback === "function") {
-            callback({ stage, message, progress });
+            callback({
+                stage,
+                message,
+                progress,
+                indeterminate
+            });
         }
     };
 
@@ -141,31 +146,74 @@ const PhotoCookBGProcessor = (() => {
         return pipeline("background-removal", MODEL, {
             device,
             dtype: CONFIG.dtype,
+
             progress_callback: event => {
                 if (event.status === "progress") {
+                    const fileName = event.file || event.name || "model file";
+
+                    const fileProgress = Number.isFinite(event.progress)
+                        ? Math.max(0, Math.min(100, event.progress))
+                        : null;
+
                     emit(
                         onProgress,
                         "loading",
-                        "Downloading AI model...",
-                        event.progress ?? null
+                        fileProgress === null
+                            ? `Downloading AI model (${fileName})...`
+                            : `Downloading ${fileName} (${Math.round(fileProgress)}%)...`,
+                        fileProgress,
+                        fileProgress === null
                     );
                 }
             }
         });
     };
 
+
     const load = async (onProgress = null) => {
         if (segmenter) return segmenter;
         if (loadingPromise) return loadingPromise;
 
         loadingPromise = (async () => {
-            emit(onProgress, "loading", "Initializing AI model...");
+            emit(onProgress, "loading", "Initializing AI model...", null, true);
 
+            // Try WebGPU first when supported.
+            if (typeof navigator !== "undefined" && navigator.gpu) {
+                try {
+                    const adapter = await navigator.gpu.requestAdapter({
+                        powerPreference: "high-performance"
+                    });
+
+                    if (adapter) {
+                        emit(
+                            onProgress,
+                            "loading",
+                            "Initializing GPU acceleration...",
+                            null,
+                            true
+                        );
+
+                        segmenter = await createPipeline("webgpu", onProgress);
+                        backend = "webgpu";
+                    }
+                } catch (error) {
+                    console.warn(
+                        "[PhotoCook BG] WebGPU failed; switching to WASM:",
+                        error
+                    );
+                    segmenter = null;
+                    backend = null;
+                }
+            }
+
+            // Fallback for phones without working WebGPU support.
             if (!segmenter) {
                 emit(
                     onProgress,
                     "loading",
-                    "Initializing WebAssembly fallback..."
+                    "Initializing mobile-compatible WASM engine...",
+                    null,
+                    true
                 );
 
                 segmenter = await createPipeline("wasm", onProgress);
@@ -173,6 +221,8 @@ const PhotoCookBGProcessor = (() => {
             }
 
             emit(onProgress, "ready", "AI model ready.", 100);
+            console.log("[PhotoCook BG] Active backend:", backend);
+
             return segmenter;
         })();
 
@@ -182,6 +232,7 @@ const PhotoCookBGProcessor = (() => {
             loadingPromise = null;
         }
     };
+
 
     const process = async (source, options = {}) => {
         if (busy) {
@@ -202,11 +253,23 @@ const PhotoCookBGProcessor = (() => {
 
             const model = await load(onProgress);
 
-            emit(onProgress, "preparing", "Preparing image...");
+            emit(
+                onProgress,
+                "preparing",
+                "Preparing image for AI...",
+                null,
+                true
+            );
 
             const prepared = await prepareImage(source, maxInputSize);
 
-            emit(onProgress, "processing", "Removing background...");
+            emit(
+                onProgress,
+                "processing",
+                "AI is analyzing the image. This may take a moment...",
+                null,
+                true
+            );
 
             const output = await model(prepared.image);
             const result = Array.isArray(output) ? output[0] : output;
@@ -223,6 +286,14 @@ const PhotoCookBGProcessor = (() => {
                 dataLength: result.data?.length,
                 firstPixels: Array.from(result.data?.slice(0, 24) || [])
             });
+
+            emit(
+                onProgress,
+                "postprocessing",
+                "Generating background mask...",
+                null,
+                true
+            );
 
             const maskResult = createMask(result);
 

@@ -23,9 +23,13 @@ window.PhotoCookBGRemover = (() => {
         return layer?.img && layer.type !== "text" ? layer : null;
     }
 
-    function setStatus(message, progress = null, error = false) {
+    function setStatus(message, progress = null, error = false, indeterminate = false) {
+        const container = $("bg-tb-processing-status");
         const status = $("bg-tb-status");
         const bar = $("bg-tb-progress");
+        const label = $("bg-tb-progress-label");
+
+        if (container) container.hidden = false;
 
         if (status) {
             status.textContent = message;
@@ -33,10 +37,19 @@ window.PhotoCookBGRemover = (() => {
         }
 
         if (bar) {
-            bar.hidden = progress === null;
-            if (progress !== null) {
+            bar.hidden = progress === null && !indeterminate;
+            bar.classList.toggle("indeterminate", indeterminate);
+
+            if (indeterminate) bar.removeAttribute("value");
+            else if (progress !== null) {
                 bar.value = Math.max(0, Math.min(100, progress));
+            } else {
+                bar.removeAttribute("value");
             }
+        }
+
+        if (label) {
+            label.textContent = progress !== null ? `${Math.round(progress)}%` : "";
         }
     }
 
@@ -80,9 +93,19 @@ window.PhotoCookBGRemover = (() => {
             <div id="bg-tb-ai-section" role="tabpanel">
                 <div class="bg-tb-preview">
                     <canvas id="bg-tb-preview-canvas"></canvas>
+
                     <span id="bg-tb-placeholder">
-                        AI background removal preview
+                        <strong>Preview will appear here</strong>
+                        <small>Remove the background to see the result.</small>
                     </span>
+
+                    <div id="bg-tb-processing-status" hidden>
+                        <div class="bg-processing-status-top">
+                            <span id="bg-tb-status">Ready</span>
+                            <span id="bg-tb-progress-label"></span>
+                        </div>
+                        <progress id="bg-tb-progress" max="100" hidden></progress>
+                    </div>
                 </div>
 
                 <button id="bg-tb-remove" class="bg-tb-primary" type="button">
