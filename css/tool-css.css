@@ -1665,3 +1665,795 @@
 #bg-tb-progress[hidden] {
     display: none !important;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* =========================================
+   PhotoCook — Filter Tool
+========================================= */
+
+#photocookFilterPanel {
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    max-height: min(310px, 48dvh);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    background: #17161b;
+    border-top: 1px solid #34343d;
+    border-radius: 10px 10px 0 0;
+    z-index: 1200;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(15px);
+    transition: opacity .2s, transform .2s, visibility .2s;
+}
+
+#photocookFilterPanel.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+/* Header and tabs */
+
+.pc-filter-header,
+.pc-filter-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 1px solid #34343d;
+}
+
+.pc-filter-header {
+    padding: 7px 12px;
+}
+
+.pc-filter-heading {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pc-filter-icon-btn {
+    width: 25px;
+    height: 25px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #a0a0ae;
+    font-size: 19px;
+    cursor: pointer;
+}
+
+.pc-filter-icon-btn:hover {
+    background: #29282d;
+    color: #fff;
+}
+
+.pc-filter-tabs {
+    gap: 6px;
+    padding: 6px 12px;
+}
+
+.pc-filter-tab {
+    flex: 1;
+    height: 28px;
+    border: 1px solid #34343d;
+    border-radius: 6px;
+    background: #25252d;
+    color: #a0a0ae;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pc-filter-tab:hover {
+    background: #353540;
+    color: #fff;
+}
+
+.pc-filter-tab.active {
+    background: #fff;
+    border-color: #fff;
+    color: #111;
+}
+
+/* Content */
+
+.pc-filter-content {
+    flex: 1;
+    min-height: 0;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #484852 transparent;
+}
+
+.pc-filter-main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.pc-filter-section-title {
+    margin: 1px 0;
+    color: #b5b5bd;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pc-filter-empty {
+    padding: 15px 8px;
+    color: #a0a0ae;
+    font-size: 11px;
+    text-align: center;
+}
+
+/* Horizontal galleries */
+
+.pc-filter-gallery,
+.pc-filter-preset-gallery {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+    padding: 2px 2px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #555 transparent;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+}
+
+.pc-filter-gallery::-webkit-scrollbar,
+.pc-filter-preset-gallery::-webkit-scrollbar {
+    height: 3px;
+}
+
+.pc-filter-gallery::-webkit-scrollbar-thumb,
+.pc-filter-preset-gallery::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 10px;
+}
+
+/* Filter cards */
+
+.pc-filter-gallery .pc-filter-card {
+    display: flex;
+    flex: 0 0 76px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 76px;
+    min-width: 76px;
+    min-height: 75px;
+    height: auto;
+    padding: 5px;
+    overflow: visible;
+    border: 1px solid #34343d;
+    border-radius: 7px;
+    background: #202025;
+    color: #c7c7ce;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+
+.pc-filter-gallery .pc-filter-card:hover {
+    background: #29292f;
+    border-color: #888;
+    color: #fff;
+}
+
+.pc-filter-gallery .pc-filter-card.active {
+    background: #303036;
+    border-color: #fff;
+    color: #fff;
+}
+
+/* Filter preview images */
+
+.pc-filter-gallery .pc-filter-preview {
+    flex: 0 0 45px;
+    width: 100%;
+    height: 45px;
+    min-height: 45px;
+    margin-bottom: 5px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #34343d;
+}
+
+.pc-filter-preview-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pc-filter-gallery .pc-filter-card span {
+    display: block;
+    width: 100%;
+    min-height: 14px;
+    overflow: visible;
+    color: inherit;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 14px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Individual preview effects */
+
+.pc-filter-preview-bw { filter: grayscale(1); }
+.pc-filter-preview-sepia { filter: sepia(1); }
+.pc-filter-preview-cyberpunk { filter: saturate(2) hue-rotate(110deg) contrast(1.2); }
+.pc-filter-preview-vintage { filter: sepia(.45) contrast(.9) saturate(.8); }
+.pc-filter-preview-invert { filter: invert(1); }
+.pc-filter-preview-warm { filter: sepia(.25) saturate(1.3); }
+.pc-filter-preview-cool { filter: hue-rotate(15deg) saturate(.9); }
+.pc-filter-preview-fade { filter: contrast(.75) brightness(1.1) saturate(.7); }
+.pc-filter-preview-dramatic { filter: contrast(1.5) saturate(1.2); }
+.pc-filter-preview-matte { filter: contrast(.8) brightness(1.05) saturate(.8); }
+.pc-filter-preview-golden { filter: sepia(.35) saturate(1.4); }
+.pc-filter-preview-dreamy { filter: brightness(1.15) saturate(.85); }
+.pc-filter-preview-teal-orange { filter: sepia(.2) saturate(1.5) hue-rotate(-15deg); }
+.pc-filter-preview-film { filter: contrast(1.15) saturate(.75) sepia(.15); }
+.pc-filter-preview-vivid { filter: saturate(1.8) contrast(1.1); }
+.pc-filter-preview-soft { filter: brightness(1.08) contrast(.8); }
+.pc-filter-preview-noir { filter: grayscale(1) contrast(1.5); }
+
+/* Preset cards */
+
+.pc-filter-preset-card {
+    position: relative;
+    display: flex;
+    flex: 0 0 125px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+    width: 125px;
+    min-width: 125px;
+    min-height: 76px;
+    padding: 8px;
+    border: 1px solid #34343d;
+    border-radius: 7px;
+    background: #202025;
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+
+.pc-filter-preset-card:hover {
+    background: #29292f;
+    border-color: #888;
+}
+
+.pc-filter-preset-card-name {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.pc-filter-preset-card small {
+    color: #92929c;
+    font-size: 9px;
+    line-height: 1.3;
+    white-space: normal;
+}
+
+.pc-filter-preset-arrow {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    color: #888;
+    font-size: 16px;
+}
+
+/* Custom preset card */
+
+.pc-filter-create-card {
+    align-items: center;
+    justify-content: center;
+    border-style: dashed;
+    border-color: #777;
+    text-align: center;
+}
+
+.pc-filter-create-card:hover {
+    background: #303036;
+    border-color: #fff;
+}
+
+.pc-filter-create-icon {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #777;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 17px;
+}
+
+.pc-filter-create-name {
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* Slider */
+
+.pc-filter-slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 7px 2px 3px;
+}
+
+.pc-filter-slider-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #a0a0ae;
+    font-size: 11px;
+}
+
+.pc-filter-slider-heading span:last-child {
+    color: #fff;
+    font-weight: 600;
+}
+
+.pc-filter-slider {
+    width: 100%;
+    accent-color: #fff;
+    cursor: pointer;
+}
+
+.pc-filter-slider:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+}
+
+/* Custom builder */
+
+.pc-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+#photocookFilterPanel .pc-filter-grid .pc-filter-card {
+    min-width: 0;
+    padding: 6px;
+    border: 1px solid #34343d;
+    border-radius: 6px;
+    background: #202025;
+    color: #c7c7ce;
+    cursor: pointer;
+}
+
+#photocookFilterPanel .pc-filter-grid .pc-filter-card:hover,
+#photocookFilterPanel .pc-filter-grid .pc-filter-card.active {
+    border-color: #fff;
+    color: #fff;
+}
+
+#photocookFilterPanel .pc-filter-grid .pc-filter-card.active {
+    background: #303036;
+}
+
+/* Preset detail and builder controls */
+
+.pc-filter-secondary {
+    min-height: 28px;
+    padding: 0 9px;
+    margin-bottom: 8px;
+    border: 1px solid #34343d;
+    border-radius: 6px;
+    background: #25252d;
+    color: #e5e5eb;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.pc-filter-detail-title {
+    margin: 7px 0;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.pc-filter-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 6px 0 10px;
+}
+
+.pc-filter-chip {
+    padding: 4px 8px;
+    border: 1px solid #777;
+    border-radius: 20px;
+    background: #29292f;
+    color: #fff;
+    font-size: 10px;
+}
+
+.pc-filter-adjustment {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #34343d;
+    color: #c7c7ce;
+    font-size: 11px;
+}
+
+.pc-filter-action {
+    width: 100%;
+    min-height: 30px;
+    margin-top: 8px;
+    border: 1px solid #fff;
+    border-radius: 6px;
+    background: #fff;
+    color: #000000;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pc-filter-action:hover {
+    background: #e5e5e5;
+}
+
+.pc-filter-name-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+    color: #a0a0ae;
+    font-size: 11px;
+}
+
+.pc-filter-name-input {
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border: 1px solid #34343d;
+    border-radius: 6px;
+    outline: none;
+    background: #0f0f11;
+    color: #fff;
+}
+
+.pc-filter-name-input:focus {
+    border-color: #fff;
+}
+
+.pc-filter-selected-count {
+    margin-top: 7px;
+    color: #fff;
+    font-size: 10px;
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+    #photocookFilterPanel {
+        max-height: min(260px, 42dvh);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .pc-filter-content {
+        padding: 7px 10px;
+    }
+
+    .pc-filter-gallery .pc-filter-card {
+        flex-basis: 72px;
+        width: 72px;
+        min-width: 72px;
+        min-height: 70px;
+    }
+
+    .pc-filter-gallery .pc-filter-preview {
+        flex-basis: 40px;
+        height: 40px;
+        min-height: 40px;
+    }
+
+    .pc-filter-preset-card {
+        flex-basis: 115px;
+        width: 115px;
+        min-width: 115px;
+        min-height: 66px;
+    }
+
+    .pc-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+/* Filter card layout and visible names */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    flex-shrink: 0;
+    min-height: 78px !important;
+    height: auto !important;
+    padding: 5px !important;
+    overflow: visible !important;
+}
+
+#photocookFilterPanel .pc-filter-gallery .pc-filter-preview {
+    flex: 0 0 43px !important;
+    height: 43px !important;
+    min-height: 43px !important;
+    margin: 0 0 4px !important;
+    overflow: hidden !important;
+}
+
+#photocookFilterPanel .pc-filter-gallery .pc-filter-preview-image {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card > span {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 16px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    color: #fff !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    line-height: 16px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+}
+
+/* Active filter border */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card.active {
+    border: 1px solid #fff !important;
+    box-shadow: 0 0 0 1px #fff;
+}
+
+/* Active preset border */
+#photocookFilterPanel .pc-filter-preset-gallery .pc-filter-preset-card.active {
+    border: 1px solid #fff !important;
+    box-shadow: 0 0 0 1px #fff;
+}
+
+@media (max-width: 600px) {
+    #photocookFilterPanel .pc-filter-gallery .pc-filter-card {
+        min-height: 75px !important;
+    }
+
+    #photocookFilterPanel .pc-filter-gallery .pc-filter-preview {
+        flex-basis: 40px !important;
+        height: 40px !important;
+        min-height: 40px !important;
+    }
+}
+
+/* FILTER PANEL — INCREASED HEIGHT */
+#photocookFilterPanel {
+    height: 370px !important;
+    max-height: 55dvh !important;
+    min-height: 340px !important;
+}
+
+/* FILTER GALLERY */
+#photocookFilterPanel .pc-filter-gallery {
+    align-items: flex-start !important;
+    padding: 10px 3px 14px !important;
+    gap: 12px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+/* FILTER CARDS */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card {
+    display: flex !important;
+    flex: 0 0 76px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    height: 100px !important;
+    min-height: 100px !important;
+    padding: 6px !important;
+    border: 1px solid #383838 !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+/* FILTER PREVIEW */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-preview {
+    flex: 0 0 62px !important;
+    height: 62px !important;
+    min-height: 62px !important;
+    width: 100% !important;
+    margin: 0 0 5px !important;
+    overflow: hidden !important;
+}
+
+/* FILTER NAME */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card > span {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 17px !important;
+    color: #fff !important;
+    font-size: 10px !important;
+    line-height: 15px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* SELECTED FILTER — WHITE BORDER */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card.active,
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card[aria-pressed="true"] {
+    border: 2px solid #fff !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.2) !important;
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+    #photocookFilterPanel {
+        height: 350px !important;
+        max-height: 58dvh !important;
+        min-height: 320px !important;
+    }
+
+    #photocookFilterPanel .pc-filter-gallery .pc-filter-card {
+        flex-basis: 72px !important;
+        height: 94px !important;
+        min-height: 94px !important;
+    }
+
+    #photocookFilterPanel .pc-filter-gallery .pc-filter-preview {
+        flex-basis: 56px !important;
+        height: 56px !important;
+        min-height: 56px !important;
+    }
+}
+
+
+/* FILTER PANEL HEIGHT */
+#photocookFilterPanel {
+    height: 370px !important;
+    min-height: 340px !important;
+    max-height: 58dvh !important;
+}
+
+/* FILTER GALLERY */
+#photocookFilterPanel .pc-filter-gallery {
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 10px 3px 14px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+/* FILTER CARD */
+#photocookFilterPanel .pc-filter-gallery button.pc-filter-card {
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex: 0 0 76px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    height: 100px !important;
+    min-height: 100px !important;
+    padding: 6px !important;
+    border: 1px solid #383838 !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+/* PREVIEW */
+#photocookFilterPanel .pc-filter-card .pc-filter-preview {
+    flex: 0 0 62px !important;
+    height: 62px !important;
+    min-height: 62px !important;
+    width: 100% !important;
+    margin: 0 0 5px !important;
+    overflow: hidden !important;
+}
+
+/* FILTER NAME */
+#photocookFilterPanel .pc-filter-card > span {
+    display: block !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-height: 17px !important;
+    color: #fff !important;
+    font-size: 10px !important;
+    line-height: 15px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ACTIVE FILTER */
+#photocookFilterPanel .pc-filter-gallery button.pc-filter-card.active {
+    border: 2px solid #fff !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.2) !important;
+}
+
+@media (max-width: 600px) {
+    #photocookFilterPanel {
+        height: 350px !important;
+        min-height: 320px !important;
+        max-height: 58dvh !important;
+    }
+
+    #photocookFilterPanel .pc-filter-gallery button.pc-filter-card {
+        flex-basis: 72px !important;
+        height: 94px !important;
+        min-height: 94px !important;
+    }
+
+    #photocookFilterPanel .pc-filter-card .pc-filter-preview {
+        flex-basis: 56px !important;
+        height: 56px !important;
+        min-height: 56px !important;
+    }
+}
+
+
+/* FILTER CARD DEFAULT BORDER */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card {
+    border: 1px solid #383838 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+/* SELECTED FILTER BORDER */
+#photocookFilterPanel .pc-filter-gallery .pc-filter-card.active {
+    border: 2px solid #ffffff !important;
+    outline: 1px solid #ffffff !important;
+    outline-offset: -2px !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.25) !important;
+}

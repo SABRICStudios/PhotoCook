@@ -497,7 +497,8 @@ window.PhotoCookEngine = (() => {
             // Image layer rendering
             ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
             if (layer.rotation) ctx.rotate(layer.rotation * Math.PI / 180);
-            const processedImage = window.PhotoCookAdjustProcessor?.getProcessedImage(layer) || layer.img;
+            const adjustedImage = window.PhotoCookAdjustProcessor?.getProcessedImage(layer) || layer.img;
+            const processedImage = window.PhotoCookFilterProcessor?.getProcessedImage(layer, adjustedImage) || adjustedImage;
 
             let finalImage = processedImage;
 
@@ -507,9 +508,21 @@ window.PhotoCookEngine = (() => {
                 console.error("[PhotoCook BG] Mask rendering failed:", error);
             }
 
-        ctx.filter = layer.filterString || 'none';
-        ctx.drawImage(finalImage, -layer.width / 2, -layer.height / 2, layer.width, layer.height);        }
+        const canvasFilters = [
+            layer.filterString,
+            layer.filterPresetString
+        ].filter(value => typeof value === 'string' && value.trim() && value.trim() !== 'none');
 
+        ctx.filter = canvasFilters.length ? canvasFilters.join(' ') : 'none';
+
+        ctx.drawImage(
+            finalImage,
+            -layer.width / 2,
+            -layer.height / 2,
+            layer.width,
+            layer.height
+        );}
+        
         ctx.restore();
     }
 
@@ -531,6 +544,12 @@ window.PhotoCookEngine = (() => {
         const scaleY = newHeight / (layer.img.naturalHeight || layer.img.height);
 
         layer.img = newImg;
+        
+        layer.imageRevision = (layer.imageRevision || 0) + 1;
+
+        window.PhotoCookAdjustProcessor?.invalidate?.(layer);
+        window.PhotoCookFilterProcessor?.invalidate?.(layer);
+
         layer.width = oldWidth * scaleX;
         layer.height = oldHeight * scaleY;
 

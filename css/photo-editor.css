@@ -86,6 +86,7 @@ header {
     gap: 5px;
     align-items: center;
     justify-content: center;
+    z-index: 900;
 }
 
 #toolbar > button{
@@ -96,6 +97,9 @@ header {
     border: 2px solid #29282d;
     border-radius: 8px;
     cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 #toolbar > #add-img{

@@ -26,60 +26,52 @@
                 try {
                     // 1. Hide selection outlines and move handles for a clean export view
                     if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
-                        window.PhotoCookInteraction.redrawCanvas(true); // true = isExporting
+                        window.PhotoCookInteraction.redrawCanvas(true);
                     }
 
-                    // 2. Immediately capture the clean canvas state into a Blob *before* any async picker prompt
+                    // 2. Generate the blob from the canvas first
                     const cleanBlob = await new Promise((resolve, reject) => {
-                        canvas.toBlob((blob) => {
-                            if (!blob) reject(new Error('Canvas blob creation failed'));
-                            else resolve(blob);
+                        if (!canvas.width || !canvas.height) {
+                            reject(new Error('Export canvas has zero dimensions.'));
+                            return;
+                        }
+
+                        canvas.toBlob(blob => {
+                            if (!blob || blob.size === 0) {
+                                reject(new Error('Canvas produced an empty PNG.'));
+                                return;
+                            }
+                            resolve(blob);
                         }, 'image/png');
                     });
 
-                    // 3. Restore normal canvas view immediately so the UI comes back instantly
-                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
-                        window.PhotoCookInteraction.redrawCanvas(false); // false = normal view
-                    }
-
-                    // 4. Check if the browser supports the File System Access API (Desktop Chrome/Edge)
-                    if (window.showSaveFilePicker) {
-                        const options = {
-                            suggestedName: fileName,
-                            types: [{
-                                description: 'PNG Image',
-                                accept: { 'image/png': ['.png'] },
-                            }],
-                        };
-                        
-                        const handle = await window.showSaveFilePicker(options);
-                        const writable = await handle.createWritable();
-                        await writable.write(cleanBlob);
-                        await writable.close();
-
-                    } else {
-                        // Fallback for Mobile devices or browsers without showSaveFilePicker
-                        const url = URL.createObjectURL(cleanBlob);
-                        const link = document.createElement('a');
-                        link.download = fileName;
-                        link.href = url;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    }
-
-                } catch (err) {
-                    // Ensure UI view is restored even if an error/cancellation occurs
+                    // 3. Restore normal canvas view
                     if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
                         window.PhotoCookInteraction.redrawCanvas(false);
                     }
-                    // If user cancels the picker (AbortError), ignore it gracefully
-                    if (err.name !== 'AbortError') {
-                        console.error('Export failed:', err);
+
+                    // 4. Standard robust download trigger (avoids 0-byte ghost files and permission errors)
+                    const url = URL.createObjectURL(cleanBlob);
+                    const link = document.createElement('a');
+
+                    link.href = url;
+                    link.download = fileName;
+                    link.style.display = 'none';
+
+                    document.body.appendChild(link);
+                    link.click();
+
+                    setTimeout(() => {
+                        link.remove();
+                        URL.revokeObjectURL(url);
+                    }, 1500);
+
+                } catch (err) {
+                    if (window.PhotoCookInteraction && window.PhotoCookInteraction.redrawCanvas) {
+                        window.PhotoCookInteraction.redrawCanvas(false);
                     }
+                    console.error('Export failed:', err);
                 } finally {
-                    // Release the lock once finished or cancelled
                     isExporting = false;
                 }
             });

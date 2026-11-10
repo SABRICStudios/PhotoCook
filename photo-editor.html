@@ -41,6 +41,7 @@
             <button id="text" class="tool-btn">Text</button>
             <button id="adjust" class="tool-btn">Adjust</button>
             <button id="bg-remover" class="tool-btn">BG-Remover</button>
+            <button id="filter" class="tool-btn">Filter</button>
         </div>
 
                    <!--Javascript area -->
@@ -67,6 +68,9 @@
         <script src="javascript/Tools/BG-Remover/bg-mask.js"></script>
         <script src="javascript/Tools/BG-Remover/bg-remover.js"></script>
         <script src="javascript/Tools/BG-Remover/bg-brush.js"></script>
+
+        <script src="javascript/Tools/Filter/filter-processor.js"></script>
+        <script src="javascript/Tools/Filter/filter.js"></script>
 
 
 
@@ -119,10 +123,6 @@
                     );
                 }
 
-                if (window.PhotoCookExport) {
-                    window.PhotoCookExport.init(canvas, actualWidth, actualHeight);
-                }
-
                 if (window.PhotoCookImport) {
                 window.PhotoCookImport.init('add-img', (img) => {
                     if (window.PhotoCookLayerManager && window.PhotoCookInteraction) {
@@ -133,6 +133,10 @@
             }
                 if (window.PhotoCookEngine) {
                     window.PhotoCookEngine.init(canvas);
+                }
+
+                if (window.PhotoCookExport) {
+                    window.PhotoCookExport.init(canvas, actualWidth, actualHeight);
                 }
 
                 if (window.PhotoCookCrop) {
@@ -158,6 +162,10 @@
                 
                 if (window.PhotoCookBGRemover) {
                     window.PhotoCookBGRemover.init('bg-remover');
+                }
+
+                if (window.PhotoCookFilter) {
+                    window.PhotoCookFilter.init('filter');
                 }
 
                 const backBtn = document.getElementById('back-btn');
