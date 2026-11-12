@@ -403,7 +403,7 @@ function setPanMode(enabled) {
     }
     isPanning = false;
     activePanTouchId = null;
-
+ 
     handleEnd();
 
     const button = document.getElementById('pan-toggle');

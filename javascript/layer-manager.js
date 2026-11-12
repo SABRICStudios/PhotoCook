@@ -123,4 +123,4 @@ window.PhotoCookLayerManager = (() => {
         removeLayer,
         clearLayers
     };
-})();
+})(); 

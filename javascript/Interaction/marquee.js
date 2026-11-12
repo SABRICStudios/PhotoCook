@@ -56,9 +56,19 @@ window.PhotoCookMarquee = (() => {
     function isEventOnHeaderOrToolbar(target) {
         if (!target || !(target instanceof Element)) return false;
 
-        return Boolean(target.closest(
-            'header, #toolbar, #text-sub-toolbar, #adjust-sub-toolbar'
-        ));
+        return Boolean(target.closest(`
+            header,
+            #toolbar,
+            #text-sub-toolbar,
+            #adjust-sub-toolbar,
+            #bg-sub-toolbar,
+            #export-btn,
+            #pc-export-dialog,
+            #zoom-in,
+            #zoom-out,
+            #zoom-fit,
+            #pan-toggle
+        `));
     }
 
     function pageToCanvasPos(px, py) {

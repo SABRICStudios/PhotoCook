@@ -1,7 +1,7 @@
 /* PhotoCook — Core Processing & Rendering Engine */
 window.PhotoCookEngine = (() => {
     'use strict';
-
+ 
     let canvasRef = null;
     let ctxRef = null;
 
@@ -551,7 +551,7 @@ window.PhotoCookEngine = (() => {
         window.PhotoCookFilterProcessor?.invalidate?.(layer);
 
         layer.width = oldWidth * scaleX;
-        layer.height = oldHeight * scaleY;
+        layer.height = oldHeight * scaleY; 
 
         layer.x += (oldWidth - layer.width) / 2;
         layer.y += (oldHeight - layer.height) / 2;
@@ -565,10 +565,6 @@ window.PhotoCookEngine = (() => {
         }
     }
 
-    /**
-     * Tool Action: Apply CSS / Canvas Filter adjustments to Active Layer
-     * Example usage: applyFilterToSelectedLayer({ brightness: 120, contrast: 110, blur: 2 });
-     */
     function applyFilterToSelectedLayer(filters = {}) {
         if (!window.PhotoCookLayerManager) return;
 
@@ -592,9 +588,75 @@ window.PhotoCookEngine = (() => {
         render();
     }
 
+
+    /**
+     * Render only an image layer for transparent image export.
+     * Keeps the original layer object so adjustment/filter caches remain valid.
+     */
+    function renderImageLayer(layer = null) {
+        if (!window.PhotoCookLayerManager) return null;
+
+        const target = layer || window.PhotoCookLayerManager.getSelectedLayer();
+
+        if (!target || target.type === 'text' || !target.img) {
+            console.warn('[PhotoCook Export] Select an image layer first.');
+            return null;
+        }
+
+        const image = target.img;
+        const imageWidth = image.naturalWidth || image.videoWidth || image.width;
+        const imageHeight = image.naturalHeight || image.videoHeight || image.height;
+
+        if (!imageWidth || !imageHeight || !target.width || !target.height) {
+            console.error('[PhotoCook Export] Invalid image dimensions.');
+            return null;
+        }
+
+        const scaleX = imageWidth / target.width;
+        const scaleY = imageHeight / target.height;
+
+        const angle = (Number(target.rotation) || 0) * Math.PI / 180;
+        const cos = Math.abs(Math.cos(angle));
+        const sin = Math.abs(Math.sin(angle));
+
+        const outputWidth = Math.ceil(
+            cos * target.width * scaleX +
+            sin * target.height * scaleY
+        );
+
+        const outputHeight = Math.ceil(
+            sin * target.width * scaleX +
+            cos * target.height * scaleY
+        );
+
+        const outputCanvas = document.createElement('canvas');
+        outputCanvas.width = Math.max(1, outputWidth);
+        outputCanvas.height = Math.max(1, outputHeight);
+
+        const outputCtx = outputCanvas.getContext('2d', {
+            alpha: true
+        });
+
+        if (!outputCtx) return null;
+
+        outputCtx.clearRect(0, 0, outputWidth, outputHeight);
+        outputCtx.translate(outputWidth / 2, outputHeight / 2);
+        outputCtx.scale(scaleX, scaleY);
+        outputCtx.translate(
+            -(target.x + target.width / 2),
+            -(target.y + target.height / 2)
+        );
+
+        drawLayer(outputCtx, target);
+
+        return outputCanvas;
+    }
+
+
     return {
         init,
         render,
+        renderImageLayer,
         applyCrop,
         applyFilterToSelectedLayer,
         rotateSelectedLayer,
