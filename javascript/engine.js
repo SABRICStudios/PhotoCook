@@ -10,7 +10,7 @@ window.PhotoCookEngine = (() => {
         let bgPreviewMask = null;
         let bgPreviewRevision = 0;
 
-        function setBGPreview(layer, maskData) {
+        function setBGPreview(layer, maskData) { 
             bgPreviewLayer = layer || null;
             bgPreviewMask = maskData || null;
             bgPreviewRevision++;

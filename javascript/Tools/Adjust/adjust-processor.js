@@ -339,6 +339,7 @@ window.PhotoCookAdjustProcessor = (() => {
         }
     }
 
+
     function getProcessedImage(layer) {
         if (!layer?.img || layer.type === 'text') {
             return layer?.img || null;
@@ -351,19 +352,42 @@ window.PhotoCookAdjustProcessor = (() => {
             return Number.isFinite(value) ? value : 0;
         });
 
-        // No adjustments: draw the original image
-        if (values.every(value => value === 0)) return layer.img;
-
         const image = layer.img;
+
         const width = image.naturalWidth || image.videoWidth || image.width;
         const height = image.naturalHeight || image.videoHeight || image.height;
 
-        if (!width || !height || !init()) return image;
+        if (!width || !height) return image;
 
-        const key = values.join(',');
+        // Check whether Adjust is permitted to use the selection.
+        const selectionEnabled =
+            window.PhotoCookSelection?.shouldApplySelection('adjust') === true;
+
+        const selectionEngine = window.PhotoCookSelectionEngine;
+
+        const selectionInfo = selectionEnabled
+            ? selectionEngine?.getSelectionInfo?.(layer) || null
+            : null;
+
+        const selectionRevision = selectionInfo?.revision || 0;
+
+        // No adjustments: preserve the original image.
+        if (values.every(value => value === 0)) {
+            return image;
+        }
+
+        if (!init()) return image;
+
+        // Include selection revision in the cache key.
+        const key = [
+            values.join(','),
+            selectionEnabled ? 'selection' : 'normal',
+            selectionRevision
+        ].join('|');
+
         const old = cache.get(layer);
 
-        // Reuse the previous result when nothing has changed
+        // Reuse the previous result when nothing has changed.
         if (
             old &&
             old.image === image &&
@@ -403,7 +427,6 @@ window.PhotoCookAdjustProcessor = (() => {
                 image
             );
 
-
             KEYS.forEach((name, i) => {
                 gl.uniform1f(uniforms[name], values[i]);
             });
@@ -416,29 +439,91 @@ window.PhotoCookAdjustProcessor = (() => {
 
             gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+            // Copy WebGL output.
+            const gpuResult = document.createElement('canvas');
+            gpuResult.width = w;
+            gpuResult.height = h;
 
-            // Copy the processed GPU result to a Canvas2D-compatible image
-            const result = document.createElement('canvas');
-            result.width = w;
-            result.height = h;
+            gpuResult.getContext('2d').drawImage(gpuCanvas, 0, 0);
 
-            result.getContext('2d').drawImage(gpuCanvas, 0, 0);
+            let finalResult = gpuResult;
+
+            // Apply the selection mask only when a valid selection exists.
+            if (selectionInfo) {
+                const selectionProcessor =
+                    window.PhotoCookSelectionProcessor;
+
+                if (!selectionProcessor?.applyToCanvas) {
+                    console.error(
+                        'PhotoCook Adjust: Selection Processor unavailable.'
+                    );
+
+                    return image;
+                }
+
+                if (
+                    selectionInfo.width !== width ||
+                    selectionInfo.height !== height
+                ) {
+                    console.warn(
+                        'PhotoCook Adjust: Selection dimensions do not match.'
+                    );
+
+                    return image;
+                }
+
+                // Create full-resolution canvases so the selection mask
+                // and image pixels use exactly the same dimensions.
+                const originalCanvas = document.createElement('canvas');
+                originalCanvas.width = width;
+                originalCanvas.height = height;
+
+                const originalContext = originalCanvas.getContext('2d', {
+                    willReadFrequently: true
+                });
+
+                originalContext.drawImage(
+                    image, 0, 0, width, height
+                );
+
+                const editedCanvas = document.createElement('canvas');
+                editedCanvas.width = width;
+                editedCanvas.height = height;
+
+                const editedContext = editedCanvas.getContext('2d');
+
+                editedContext.drawImage(
+                    gpuResult, 0, 0, width, height
+                );
+
+                // Blend original and adjusted pixels through the mask.
+                finalResult = selectionProcessor.applyToCanvas(
+                    originalCanvas,
+                    editedCanvas,
+                    selectionInfo.mask
+                );
+            }
 
             cache.set(layer, {
                 image,
                 key,
                 width,
                 height,
-                canvas: result
+                canvas: finalResult
             });
 
-            return result;
+            return finalResult;
 
         } catch (error) {
-            console.warn('PhotoCook Adjust: Processing failed.', error);
+            console.warn(
+                'PhotoCook Adjust: Processing failed.',
+                error
+            );
+
             return image;
         }
     }
+
 
     function invalidate(layer) {
         if (layer) cache.delete(layer);

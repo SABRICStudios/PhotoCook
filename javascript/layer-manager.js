@@ -1,27 +1,35 @@
+
 /* PhotoCook — Dedicated Layer Manager Module */
 window.PhotoCookLayerManager = (() => {
     'use strict';
 
-    let imageLayers = []; // Stores layers: { img, x, y, width, height, isSelected, handleBounds }
+    let imageLayers = [];
+
+    function clearLayerSelection(layer) {
+        if (window.PhotoCookSelectionEngine) {
+            window.PhotoCookSelectionEngine.destroyLayer(layer);
+        }
+    }
 
     function getLayers() {
         return imageLayers;
     }
 
     function addLayer(img, canvasWidth, canvasHeight) {
+        if (!img) return null;
+
         const scale = Math.min(canvasWidth / img.width, canvasHeight / img.height);
         const drawWidth = img.width * scale;
         const drawHeight = img.height * scale;
         const x = (canvasWidth - drawWidth) / 2;
         const y = (canvasHeight - drawHeight) / 2;
 
-        // Deselect existing layers
-        imageLayers.forEach(l => l.isSelected = false);
+        imageLayers.forEach(layer => layer.isSelected = false);
 
         const newLayer = {
-            img: img,
-            x: x,
-            y: y,
+            img,
+            x,
+            y,
             width: drawWidth,
             height: drawHeight,
             isSelected: true,
@@ -34,35 +42,59 @@ window.PhotoCookLayerManager = (() => {
     }
 
     function getSelectedLayer() {
-        return imageLayers.find(l => l.isSelected) || null;
+        return imageLayers.find(layer => layer.isSelected) || null;
     }
 
     function deselectAll() {
-        imageLayers.forEach(l => l.isSelected = false);
+        imageLayers.forEach(layer => layer.isSelected = false);
     }
 
     function updateSelectedLayerImage(newImg, newWidth, newHeight) {
         const layer = getSelectedLayer();
-        if (!layer) return;
+        if (!layer || !newImg) return false;
+
+        const oldWidth = layer.img?.naturalWidth || layer.img?.width;
+        const oldHeight = layer.img?.naturalHeight || layer.img?.height;
+        const newImageWidth = newImg.naturalWidth || newImg.width;
+        const newImageHeight = newImg.naturalHeight || newImg.height;
+
+        // Clear selection only if the underlying image dimensions change.
+        if (oldWidth !== newImageWidth || oldHeight !== newImageHeight) {
+            clearLayerSelection(layer);
+        }
 
         layer.img = newImg;
-        layer.width = newWidth;
-        layer.height = newHeight;
+
+        if (Number.isFinite(newWidth) && newWidth > 0) {
+            layer.width = newWidth;
+        }
+
+        if (Number.isFinite(newHeight) && newHeight > 0) {
+            layer.height = newHeight;
+        }
+
+        return true;
     }
 
-
-    // Inside PhotoCookLayerManager return object, add support for text objects:
     function addTextLayer(textConfig, canvasWidth, canvasHeight) {
-        imageLayers.forEach(l => l.isSelected = false);
+        if (!textConfig) return null;
 
-        // Temp canvas context to measure accurate bounds
+        imageLayers.forEach(layer => layer.isSelected = false);
+
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.font = `${textConfig.fontSize || 48}px ${textConfig.fontFamily || 'Arial'}`;
-        
-        const textMetrics = tempCtx.measureText(textConfig.text || 'Your paragraph text');
+
+        const fontSize = textConfig.fontSize || 48;
+        const fontFamily = textConfig.fontFamily || 'Arial';
+
+        tempCtx.font = `${fontSize}px ${fontFamily}`;
+
+        const textMetrics = tempCtx.measureText(
+            textConfig.text || 'Your paragraph text'
+        );
+
         const textWidth = textMetrics.width;
-        const textHeight = textConfig.fontSize || 48;
+        const textHeight = fontSize;
 
         textConfig.x = (canvasWidth / 2) - (textWidth / 2);
         textConfig.y = (canvasHeight / 2) - (textHeight / 2);
@@ -76,24 +108,35 @@ window.PhotoCookLayerManager = (() => {
 
     function removeLayer(targetLayer) {
         const index = imageLayers.indexOf(targetLayer);
-        if (index === -1 || targetLayer.type !== 'text') return false;
+        if (index === -1) return false;
+
+        clearLayerSelection(targetLayer);
 
         imageLayers.splice(index, 1);
         return true;
     }
 
-    
     function getSelectedLayerAdjustments() {
         const layer = getSelectedLayer();
         if (!layer || !layer.img) return null;
+
         return { ...(layer.adjustments || {}) };
     }
 
     function updateSelectedLayerAdjustments(newAdjustments) {
         const layer = getSelectedLayer();
-        if (!layer || !layer.img || !newAdjustments || typeof newAdjustments !== 'object') return false;
 
-        layer.adjustments = { ...(layer.adjustments || {}), ...newAdjustments };
+        if (!layer || !layer.img ||
+            !newAdjustments ||
+            typeof newAdjustments !== 'object') {
+            return false;
+        }
+
+        layer.adjustments = {
+            ...(layer.adjustments || {}),
+            ...newAdjustments
+        };
+
         return true;
     }
 
@@ -105,8 +148,8 @@ window.PhotoCookLayerManager = (() => {
         return true;
     }
 
-
     function clearLayers() {
+        imageLayers.forEach(clearLayerSelection);
         imageLayers = [];
     }
 
@@ -123,4 +166,4 @@ window.PhotoCookLayerManager = (() => {
         removeLayer,
         clearLayers
     };
-})(); 
+})();

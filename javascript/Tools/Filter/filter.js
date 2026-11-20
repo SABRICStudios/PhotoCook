@@ -67,6 +67,33 @@
         }
     }
 
+
+    let selectionRefreshBound = false;
+
+    function handleSelectionChanged(event) {
+        const changedLayer = event?.detail?.layer;
+        if (!changedLayer) return;
+
+        const activeLayer = getLayer();
+
+        // Only refresh when the changed selection belongs to the active layer.
+        if (!activeLayer || activeLayer !== changedLayer) return;
+
+        redraw();
+    }
+
+    function bindSelectionEvents() {
+        if (selectionRefreshBound) return;
+
+        window.addEventListener(
+            'photocook:selection:changed',
+            handleSelectionChanged
+        );
+
+        selectionRefreshBound = true;
+    }
+
+
     function refreshLayer() {
         activeLayer = getLayer();
 
@@ -691,6 +718,7 @@
             return;
         }
         createPanel();
+        bindSelectionEvents();
 
         const button = document.getElementById(buttonId + "Btn") ||
             document.getElementById(buttonId);
@@ -716,6 +744,7 @@
         close: closePanel,
         savePreset: openCustomBuilder,
         applyPreset,
-        applySingleFilter
+        applySingleFilter,
+        
     };
 })();

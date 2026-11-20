@@ -298,6 +298,7 @@
         return output;
     }
 
+
     function getProcessedImage(layer, sourceImage) {
         if (!layer || !sourceImage) return sourceImage;
 
@@ -315,10 +316,26 @@
 
         if (!width || !height) return sourceImage;
 
+        // Retrieve the active selection for this layer.
+        const selectionEngine = window.PhotoCookSelectionEngine;
+        const selectionProcessor = window.PhotoCookSelectionProcessor;
+
+        const selectionInfo =
+            window.PhotoCookSelection?.shouldApplySelection?.('filter') &&
+            selectionEngine?.getSelectionInfo
+                ? selectionEngine.getSelectionInfo(layer)
+                : null;
+
+        // Selection revision is part of the cache signature.
+        const selectionRevision = selectionInfo
+            ? selectionInfo.revision
+            : selectionEngine?.getRevision?.(layer) ?? 0;
+
         const signature = JSON.stringify({
             filters,
             revision: layer.filterRevision || 0,
             imageRevision: layer.imageRevision || 0,
+            selectionRevision,
             width,
             height
         });
@@ -334,36 +351,104 @@
         }
 
         try {
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
+            // Create the filtered image using the existing filter pipeline.
+            const filteredCanvas = document.createElement('canvas');
+            filteredCanvas.width = width;
+            filteredCanvas.height = height;
 
-            const ctx = canvas.getContext("2d", {
+            const filteredContext = filteredCanvas.getContext('2d', {
                 willReadFrequently: true
             });
 
-            if (!ctx) return sourceImage;
+            if (!filteredContext) return sourceImage;
 
-            ctx.drawImage(sourceImage, 0, 0, width, height);
+            filteredContext.drawImage(
+                sourceImage,
+                0,
+                0,
+                width,
+                height
+            );
 
-            const imageData = ctx.getImageData(0, 0, width, height);
+            const imageData = filteredContext.getImageData(
+                0,
+                0,
+                width,
+                height
+            );
+
             const processed = processImageData(imageData, filters);
 
-            ctx.putImageData(processed, 0, 0);
+            filteredContext.putImageData(processed, 0, 0);
+
+            let finalCanvas = filteredCanvas;
+
+            // Blend the filtered pixels with the original image
+            // wherever a selection is active.
+            if (selectionInfo) {
+                if (!selectionProcessor?.applyToCanvas) {
+                    console.warn(
+                        '[PhotoCook Filter] Selection processor is unavailable.'
+                    );
+
+                    return sourceImage;
+                }
+
+                if (
+                    selectionInfo.width !== width ||
+                    selectionInfo.height !== height ||
+                    selectionInfo.mask.length !== width * height
+                ) {
+                    console.warn(
+                        '[PhotoCook Filter] Selection dimensions do not match the image.'
+                    );
+
+                    return sourceImage;
+                }
+
+                const originalCanvas = document.createElement('canvas');
+                originalCanvas.width = width;
+                originalCanvas.height = height;
+
+                const originalContext = originalCanvas.getContext('2d', {
+                    willReadFrequently: true
+                });
+
+                if (!originalContext) return sourceImage;
+
+                originalContext.drawImage(
+                    sourceImage,
+                    0,
+                    0,
+                    width,
+                    height
+                );
+
+                finalCanvas = selectionProcessor.applyToCanvas(
+                    originalCanvas,
+                    filteredCanvas,
+                    selectionInfo.mask
+                );
+            }
 
             CACHE.set(layer, {
                 source: sourceImage,
                 signature,
-                canvas
+                canvas: finalCanvas
             });
 
-            return canvas;
+            return finalCanvas;
 
         } catch (error) {
-            console.error("[PhotoCook Filter] Processing failed:", error);
+            console.error(
+                '[PhotoCook Filter] Processing failed:',
+                error
+            );
+
             return sourceImage;
         }
     }
+
 
     function invalidate(layer) {
         if (!layer) return;

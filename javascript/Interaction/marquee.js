@@ -32,6 +32,12 @@ window.PhotoCookMarquee = (() => {
     let currentPageX = 0;
     let currentPageY = 0;
 
+    function isSelectionActive() {
+        return Boolean(
+            window.PhotoCookSelectionInteraction?.active
+        );
+    }
+
     function createSelectionBoxElement() {
         if (selectionBoxEl) return;
         selectionBoxEl = document.createElement('div');
@@ -62,6 +68,7 @@ window.PhotoCookMarquee = (() => {
             #text-sub-toolbar,
             #adjust-sub-toolbar,
             #bg-sub-toolbar,
+            #selection-sub-toolbar,
             #export-btn,
             #pc-export-dialog,
             #zoom-in,
@@ -192,7 +199,8 @@ window.PhotoCookMarquee = (() => {
     function handleStart(e) {
         if (!canvasElement) return;
 
-        if (window.PhotoCookToolState?.isToolOpen() ||
+        if (isSelectionActive() ||
+            window.PhotoCookToolState?.isToolOpen() ||
             window.PhotoCookInteraction?.isPanEnabled?.() ||
             window.PhotoCookBGRemover?.isOpen?.()) return;
 
@@ -267,8 +275,11 @@ window.PhotoCookMarquee = (() => {
     }
 
     function handleMove(e) {
-        if (window.PhotoCookBGRemover?.isOpen?.() ||
-            window.PhotoCookInteraction?.isPanEnabled?.()) {
+        if (
+            isSelectionActive() ||
+            window.PhotoCookBGRemover?.isOpen?.() ||
+            window.PhotoCookInteraction?.isPanEnabled?.()
+        ) {
             cancelMarquee();
             return;
         }
@@ -285,8 +296,11 @@ window.PhotoCookMarquee = (() => {
     }
 
     function handleEnd(e) {
-        if (window.PhotoCookBGRemover?.isOpen?.() ||
-            window.PhotoCookInteraction?.isPanEnabled?.()) {
+        if (
+            isSelectionActive() ||
+            window.PhotoCookBGRemover?.isOpen?.() ||
+            window.PhotoCookInteraction?.isPanEnabled?.()
+        ) {
             cancelMarquee();
             return;
         }
@@ -371,6 +385,7 @@ window.PhotoCookMarquee = (() => {
 
         canvasElement.addEventListener('mousedown', handleStart);
         canvasElement.addEventListener('touchstart', handleStart, { passive: false });
+        document.addEventListener('photocook:selection:opened', cancelMarquee);
 
         window.addEventListener('mousedown', (e) => {
             const target = e.target;

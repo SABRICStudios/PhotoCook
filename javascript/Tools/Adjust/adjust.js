@@ -60,6 +60,17 @@ window.PhotoCookAdjust = (() => {
             else open();
         });
 
+
+        window.addEventListener('photocook:selection:changed', event => {
+            if (!panel || !targetLayer) return;
+
+            if (event.detail?.layer !== targetLayer) return;
+
+            window.PhotoCookAdjustProcessor?.invalidate(targetLayer);
+            window.PhotoCookInteraction?.redrawCanvas();
+        });
+
+
         initialized = true;
     }
 
@@ -244,6 +255,7 @@ window.PhotoCookAdjust = (() => {
         notifyChange();
     }
 
+
     function notifyChange() {
         if (targetLayer) {
             window.PhotoCookAdjustProcessor?.invalidate(targetLayer);
@@ -251,8 +263,11 @@ window.PhotoCookAdjust = (() => {
 
         window.PhotoCookInteraction?.redrawCanvas();
 
-        if (onChangeCallback) onChangeCallback(getValues());
+        if (onChangeCallback) {
+            onChangeCallback(getValues());
+        }
     }
+
 
     function setupHorizontalDrag(container) {
         let startX = 0;
