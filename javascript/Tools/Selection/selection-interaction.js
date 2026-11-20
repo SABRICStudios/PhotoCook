@@ -901,6 +901,7 @@
             );
         },
 
+
         renderOverlay(ctx) {
             if (!ctx || !this.active) return;
 
@@ -910,21 +911,23 @@
             if (!renderer || !engine) return;
 
             if (this.isDrawing && this.layer) {
+                const dimensions = this.getLayerDimensions(this.layer);
+
+                if (!dimensions) return;
+
                 const mask = this.mode === 'brush'
                     ? window.PhotoCookSelectionBrush?.getMask?.() || this.brushMask
                     : this.previewMask;
 
-                if (mask) {
-                    const dimensions = this.getLayerDimensions(this.layer);
-       
-                    renderer.render(ctx, {
-                        layer,
-                        mask,
-                        width: dimensions.width,
-                        height: dimensions.height,
-                        revision: engine.getRevision(layer)
-                    });
-                }
+                if (!mask) return;
+
+                renderer.render(ctx, {
+                    layer: this.layer,
+                    mask,
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    preview: true
+                });
 
                 return;
             }
@@ -932,10 +935,11 @@
             const layer = this.getSelectedLayer();
             if (!layer) return;
 
-            const mask = engine.getMask(layer);
             const dimensions = this.getLayerDimensions(layer);
+            if (!dimensions) return;
 
-            if (!mask || !dimensions) return;
+            const mask = engine.getMask(layer);
+            if (!mask) return;
 
             renderer.render(ctx, {
                 layer,
@@ -945,6 +949,7 @@
                 revision: engine.getRevision(layer)
             });
         },
+
 
         requestRedraw() {
             window.PhotoCookInteraction?.redrawCanvas?.();
