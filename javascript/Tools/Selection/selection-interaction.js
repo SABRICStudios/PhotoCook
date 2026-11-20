@@ -916,12 +916,13 @@
 
                 if (mask) {
                     const dimensions = this.getLayerDimensions(this.layer);
-
+       
                     renderer.render(ctx, {
-                        layer: this.layer,
+                        layer,
                         mask,
                         width: dimensions.width,
-                        height: dimensions.height
+                        height: dimensions.height,
+                        revision: engine.getRevision(layer)
                     });
                 }
 
@@ -940,7 +941,8 @@
                 layer,
                 mask,
                 width: dimensions.width,
-                height: dimensions.height
+                height: dimensions.height,
+                revision: engine.getRevision(layer)
             });
         },
 

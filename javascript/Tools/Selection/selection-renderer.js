@@ -1,5 +1,5 @@
 
-/* PhotoCook — Selection Renderer */
+/* PhotoCook — Optimized Selection Renderer */
 (() => {
     'use strict';
 
@@ -8,43 +8,58 @@
     const Renderer = {
         enabled: true,
         dashOffset: 0,
+
         boundaryCache: new WeakMap(),
+        previewCache: new WeakMap(),
+
+        createCanvas(width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            return canvas;
+        },
 
         render(ctx, selection) {
             if (!this.enabled || !ctx || !selection) return;
 
             const {
                 mask,
-                width: maskWidth,
-                height: maskHeight
+                width,
+                height,
+                layer,
+                preview = false,
+                revision
             } = selection;
 
             if (
                 !mask ||
-                !Number.isInteger(maskWidth) ||
-                !Number.isInteger(maskHeight) ||
-                maskWidth <= 0 ||
-                maskHeight <= 0
+                !Number.isInteger(width) ||
+                !Number.isInteger(height) ||
+                width <= 0 ||
+                height <= 0 ||
+                !layer
             ) {
                 return;
             }
 
-            const edgeCanvas = this.createBoundary(
-                mask,
-                maskWidth,
-                maskHeight
-            );
+            const edgeCanvas = preview
+                ? this.getPreviewBoundary(mask, width, height)
+                : this.getCachedBoundary(
+                    layer,
+                    mask,
+                    width,
+                    height,
+                    revision
+                );
 
             if (!edgeCanvas) return;
-
-            const layer = selection.layer || {};
 
             const x = selection.x ?? layer.x ?? 0;
             const y = selection.y ?? layer.y ?? 0;
             const displayWidth =
-                selection.displayWidth ?? layer.width ?? maskWidth;
+                selection.displayWidth ?? layer.width ?? width;
             const displayHeight =
-                selection.displayHeight ?? layer.height ?? maskHeight;
+                selection.displayHeight ?? layer.height ?? height;
             const rotation = selection.rotation ?? layer.rotation ?? 0;
 
             if (
@@ -52,6 +67,7 @@
                 !Number.isFinite(y) ||
                 !Number.isFinite(displayWidth) ||
                 !Number.isFinite(displayHeight) ||
+                !Number.isFinite(rotation) ||
                 displayWidth <= 0 ||
                 displayHeight <= 0
             ) {
@@ -80,6 +96,67 @@
             ctx.restore();
         },
 
+        getCachedBoundary(layer, mask, width, height, revision) {
+            const engine = window.PhotoCookSelectionEngine;
+
+            const currentRevision = Number.isFinite(revision)
+                ? revision
+                : engine?.getRevision?.(layer) ?? 0;
+
+            const cached = this.boundaryCache.get(layer);
+
+            if (
+                cached &&
+                cached.revision === currentRevision &&
+                cached.width === width &&
+                cached.height === height
+            ) {
+                return cached.canvas;
+            }
+
+            const canvas = this.createBoundary(mask, width, height);
+            if (!canvas) return null;
+
+            this.boundaryCache.set(layer, {
+                revision: currentRevision,
+                width,
+                height,
+                canvas
+            });
+
+            return canvas;
+        },
+
+        getPreviewBoundary(mask, width, height) {
+            if (
+                !mask ||
+                typeof mask !== 'object'
+            ) {
+                return this.createBoundary(mask, width, height);
+            }
+
+            const cached = this.previewCache.get(mask);
+
+            if (
+                cached &&
+                cached.width === width &&
+                cached.height === height
+            ) {
+                return cached.canvas;
+            }
+
+            const canvas = this.createBoundary(mask, width, height);
+            if (!canvas) return null;
+
+            this.previewCache.set(mask, {
+                width,
+                height,
+                canvas
+            });
+
+            return canvas;
+        },
+
         getMaskPixels(mask, width, height) {
             const total = width * height;
 
@@ -97,7 +174,8 @@
                 return null;
             }
 
-            if (mask instanceof ImageData) {
+            if (typeof ImageData !== 'undefined' &&
+                mask instanceof ImageData) {
                 if (
                     mask.width !== width ||
                     mask.height !== height
@@ -108,9 +186,10 @@
                 return this.extractAlpha(mask.data, total);
             }
 
-            if (typeof HTMLCanvasElement !== 'undefined' &&
-                mask instanceof HTMLCanvasElement) {
-
+            if (
+                typeof HTMLCanvasElement !== 'undefined' &&
+                mask instanceof HTMLCanvasElement
+            ) {
                 if (
                     mask.width !== width ||
                     mask.height !== height
@@ -118,14 +197,14 @@
                     return null;
                 }
 
-                const maskContext = mask.getContext('2d', {
+                const context = mask.getContext('2d', {
                     willReadFrequently: true
                 });
 
-                if (!maskContext) return null;
+                if (!context) return null;
 
                 try {
-                    const data = maskContext.getImageData(
+                    const data = context.getImageData(
                         0, 0, width, height
                     ).data;
 
@@ -170,12 +249,7 @@
 
             if (!maskPixels) return null;
 
-            const total = width * height;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-
+            const canvas = this.createCanvas(width, height);
             const context = canvas.getContext('2d');
 
             if (!context) return null;
@@ -186,11 +260,7 @@
             );
 
             const pixels = imageData.data;
-
-            const isSelected = (index) =>
-                index >= 0 &&
-                index < total &&
-                maskPixels[index] > 127;
+            const total = width * height;
 
             for (let y = 0; y < height; y++) {
                 const rowOffset = y * width;
@@ -198,21 +268,22 @@
                 for (let x = 0; x < width; x++) {
                     const index = rowOffset + x;
 
-                    if (!isSelected(index)) continue;
+                    if (maskPixels[index] <= 127) continue;
 
                     const boundary =
                         x === 0 ||
                         x === width - 1 ||
                         y === 0 ||
                         y === height - 1 ||
-                        !isSelected(index - 1) ||
-                        !isSelected(index + 1) ||
-                        !isSelected(index - width) ||
-                        !isSelected(index + width);
+                        maskPixels[index - 1] <= 127 ||
+                        maskPixels[index + 1] <= 127 ||
+                        maskPixels[index - width] <= 127 ||
+                        maskPixels[index + width] <= 127;
 
                     if (!boundary) continue;
 
                     const pixelIndex = index * 4;
+
                     const isWhite =
                         (x + y + this.dashOffset) % 8 < 4;
 
@@ -231,13 +302,20 @@
         },
 
         setDashOffset(offset) {
-            this.dashOffset = Number.isFinite(Number(offset))
-                ? Number(offset)
-                : 0;
+            const nextOffset = Number(offset);
+
+            if (Number.isFinite(nextOffset)) {
+                this.dashOffset = nextOffset;
+            }
+        },
+
+        invalidate(layer) {
+            if (!layer) return;
+
+            this.boundaryCache.delete(layer);
         },
 
         clear(ctx) {
-            // The main editor renderer owns canvas clearing.
             if (!ctx) return;
 
             ctx.save();
@@ -250,5 +328,4 @@
     };
 
     window.PhotoCookSelectionRenderer = Renderer;
-
 })();
