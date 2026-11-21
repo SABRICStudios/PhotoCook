@@ -495,47 +495,70 @@
             }
         },
 
+
         createPolygonMask(width, height, points) {
-            if (!points || points.length < 3) {
-                this.previewMask.fill(0);
+            if (!this.previewMask || !points || points.length < 3) {
                 return;
             }
 
             const mask = this.previewMask;
             mask.fill(0);
 
-            const minX = Math.max(
-                0,
-                Math.floor(Math.min(...points.map(p => p.x)))
-            );
+            let minY = height;
+            let maxY = 0;
 
-            const maxX = Math.min(
-                width,
-                Math.ceil(Math.max(...points.map(p => p.x)))
-            );
+            for (const point of points) {
+                minY = Math.min(minY, point.y);
+                maxY = Math.max(maxY, point.y);
+            }
 
-            const minY = Math.max(
-                0,
-                Math.floor(Math.min(...points.map(p => p.y)))
-            );
+            minY = Math.max(0, Math.floor(minY));
+            maxY = Math.min(height, Math.ceil(maxY));
 
-            const maxY = Math.min(
-                height,
-                Math.ceil(Math.max(...points.map(p => p.y)))
-            );
+            const intersections = [];
+            const count = points.length;
 
             for (let y = minY; y < maxY; y++) {
-                for (let x = minX; x < maxX; x++) {
-                    if (this.isPointInPolygon(
-                        x + 0.5,
-                        y + 0.5,
-                        points
-                    )) {
-                        mask[y * width + x] = 255;
+                const scanY = y + 0.5;
+                intersections.length = 0;
+
+                for (let i = 0; i < count; i++) {
+                    const a = points[i];
+                    const b = points[(i + 1) % count];
+
+                    if ((a.y <= scanY && b.y > scanY) ||
+                        (b.y <= scanY && a.y > scanY)) {
+
+                        const x = a.x +
+                            ((scanY - a.y) / (b.y - a.y)) *
+                            (b.x - a.x);
+
+                        intersections.push(x);
+                    }
+                }
+
+                intersections.sort((a, b) => a - b);
+
+                const rowOffset = y * width;
+
+                for (let i = 0; i + 1 < intersections.length; i += 2) {
+                    const start = Math.max(
+                        0,
+                        Math.ceil(intersections[i] - 0.5)
+                    );
+
+                    const end = Math.min(
+                        width,
+                        Math.ceil(intersections[i + 1] - 0.5)
+                    );
+
+                    if (end > start) {
+                        mask.fill(255, rowOffset + start, rowOffset + end);
                     }
                 }
             }
         },
+
 
         isPointInPolygon(x, y, points) {
             let inside = false;
@@ -561,12 +584,16 @@
             return inside;
         },
 
+
         addPolygonPoint(layer, point) {
             if (!this.isDrawing) {
                 this.layer = layer;
                 this.isDrawing = true;
                 this.points = [point];
-                this.previewMask = this.createEmptyMask(layer);
+                this.currentPoint = point;
+
+                // Don't allocate a full-size mask during polygon drawing.
+                this.previewMask = null;
 
                 this.requestRedraw();
                 return;
@@ -577,7 +604,26 @@
                 return;
             }
 
+            const first = this.points[0];
             const previous = this.points[this.points.length - 1];
+
+            // Tap near the first point to close the polygon.
+            if (this.points.length >= 3 && first) {
+                const dimensions = this.getLayerDimensions(layer);
+                const closeDistance = dimensions
+                    ? Math.max(10, Math.min(dimensions.width, dimensions.height) * 0.015)
+                    : 10;
+
+                if (
+                    Math.hypot(
+                        point.x - first.x,
+                        point.y - first.y
+                    ) <= closeDistance
+                ) {
+                    this.finishPolygon();
+                    return;
+                }
+            }
 
             if (
                 previous &&
@@ -592,9 +638,10 @@
             this.points.push(point);
             this.currentPoint = point;
 
-            this.updatePreview();
             this.requestRedraw();
         },
+
+
 
         finishPolygon() {
             if (!this.layer || this.points.length < 3) {
@@ -609,6 +656,13 @@
                 return;
             }
 
+            this.previewMask = this.createEmptyMask(this.layer);
+
+            if (!this.previewMask) {
+                this.cancelDrawing();
+                return;
+            }
+
             this.createPolygonMask(
                 dimensions.width,
                 dimensions.height,
@@ -617,6 +671,7 @@
 
             this.commitPreview();
         },
+
 
         startBrush(layer, point) {
             const brush = window.PhotoCookSelectionBrush;
@@ -951,6 +1006,76 @@
         },
 
 
+        renderPolygonPreview(ctx) {
+            if (
+                !ctx ||
+                !this.layer ||
+                this.points.length === 0
+            ) {
+                return;
+            }
+
+            const layer = this.layer;
+            const dimensions = this.getLayerDimensions(layer);
+
+            if (!dimensions) return;
+
+            const width = Number(layer.width);
+            const height = Number(layer.height);
+
+            if (!width || !height) return;
+
+            ctx.save();
+
+            ctx.translate(
+                layer.x + width / 2,
+                layer.y + height / 2
+            );
+
+            ctx.rotate((Number(layer.rotation) || 0) * Math.PI / 180);
+
+            ctx.scale(
+                width / dimensions.width,
+                height / dimensions.height
+            );
+
+            ctx.translate(
+                -dimensions.width / 2,
+                -dimensions.height / 2
+            );
+
+            ctx.beginPath();
+            ctx.moveTo(this.points[0].x, this.points[0].y);
+
+            for (let i = 1; i < this.points.length; i++) {
+                ctx.lineTo(this.points[i].x, this.points[i].y);
+            }
+
+            if (this.currentPoint) {
+                ctx.lineTo(
+                    this.currentPoint.x,
+                    this.currentPoint.y
+                );
+            }
+
+            // Preview the closing edge.
+            if (this.points.length >= 2) {
+                ctx.lineTo(
+                    this.points[0].x,
+                    this.points[0].y
+                );
+            }
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2 * dimensions.width / width;
+            ctx.setLineDash([6 * dimensions.width / width, 4 * dimensions.width / width]);
+            ctx.stroke();
+
+            ctx.restore();
+        },
+
+
+
         renderOverlay(ctx) {
             if (!ctx || !this.active) return;
 
@@ -961,6 +1086,11 @@
 
             if (this.isDrawing && this.layer) {
                 const dimensions = this.getLayerDimensions(this.layer);
+
+                if (this.mode === 'polygon') {
+                    this.renderPolygonPreview(ctx);
+                    return;
+                }
 
                 if (!dimensions) return;
 
