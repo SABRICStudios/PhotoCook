@@ -19,6 +19,7 @@
         brushMask: null,
         brushAttached: false,
         subjectRequest: 0,
+        polygonControls: null,
 
         init() {
             if (this.initialized) return;
@@ -92,6 +93,7 @@
 
             this.cancelDrawing();
             this.mode = mode;
+            this.updatePolygonControls();
 
             return true;
         },
@@ -216,7 +218,8 @@
             this.previewMask = null;
             this.brushMask = null;
             this.layer = null;
-
+            
+            this.updatePolygonControls();
             this.requestRedraw();
         },
 
@@ -237,6 +240,7 @@
             this.brushMask = null;
             this.layer = null;
 
+            this.updatePolygonControls();
             this.requestRedraw();
         },
 
@@ -257,6 +261,102 @@
 
             this.brushAttached = false;
         },
+
+
+        ensurePolygonControls() {
+            const panel = document.getElementById('selection-sub-toolbar');
+            const host = panel?.querySelector('.selection-main-page');
+
+            if (!host) return null;
+
+            let controls = host.querySelector('.selection-polygon-controls');
+
+            if (!controls) {
+                if (!document.getElementById('selection-polygon-controls-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'selection-polygon-controls-style';
+                    style.textContent = `
+                        .selection-polygon-controls {
+                            display: flex;
+                            gap: 8px;
+                            width: 100%;
+                            margin-top: 12px;
+                        }
+                        .selection-polygon-controls[hidden],
+                        .selection-polygon-controls button[hidden] {
+                            display: none !important;
+                        }
+                        .selection-polygon-controls button {
+                            flex: 1;
+                            min-height: 42px;
+                            border: 0;
+                            border-radius: 8px;
+                            font: inherit;
+                            font-weight: 600;
+                            cursor: pointer;
+                            touch-action: manipulation;
+                        }
+                        .selection-polygon-finish {
+                            color: #fff;
+                            background: var(--accent-color, #278653);
+                        }
+                        .selection-polygon-cancel {
+                            color: inherit;
+                            background: var(--panel-secondary, #444);
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                controls = document.createElement('div');
+                controls.className = 'selection-polygon-controls';
+                controls.innerHTML = `
+                    <button type="button" class="selection-polygon-finish"
+                        data-polygon-action="finish" hidden>Finish</button>
+                    <button type="button" class="selection-polygon-cancel"
+                        data-polygon-action="cancel" hidden>Cancel</button>
+                `;
+
+                controls.addEventListener('click', event => {
+                    const button = event.target.closest('[data-polygon-action]');
+                    if (!button) return;
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (button.dataset.polygonAction === 'finish') {
+                        if (this.points.length >= 3) this.finishPolygon();
+                    } else if (button.dataset.polygonAction === 'cancel') {
+                        this.cancelDrawing();
+                    }
+                });
+
+                host.appendChild(controls);
+            }
+
+            this.polygonControls = controls;
+            return controls;
+        },
+
+updatePolygonControls() {
+    const controls = this.ensurePolygonControls();
+    if (!controls) return;
+
+    const visible =
+        this.active &&
+        this.mode === 'polygon' &&
+        this.points.length > 0;
+
+    controls.hidden = !visible;
+
+    const finish = controls.querySelector('[data-polygon-action="finish"]');
+    const cancel = controls.querySelector('[data-polygon-action="cancel"]');
+
+    if (finish) finish.hidden = !visible || this.points.length < 3;
+    if (cancel) cancel.hidden = !visible;
+},
+
+
 
         handleStart(event, canvasPoint) {
             if (
@@ -496,10 +596,9 @@
         },
 
 
+
         createPolygonMask(width, height, points) {
-            if (!this.previewMask || !points || points.length < 3) {
-                return;
-            }
+            if (!this.previewMask || !points || points.length < 3) return;
 
             const mask = this.previewMask;
             mask.fill(0);
@@ -526,14 +625,13 @@
                     const a = points[i];
                     const b = points[(i + 1) % count];
 
-                    if ((a.y <= scanY && b.y > scanY) ||
-                        (b.y <= scanY && a.y > scanY)) {
-
-                        const x = a.x +
-                            ((scanY - a.y) / (b.y - a.y)) *
-                            (b.x - a.x);
-
-                        intersections.push(x);
+                    if (
+                        (a.y <= scanY && b.y > scanY) ||
+                        (b.y <= scanY && a.y > scanY)
+                    ) {
+                        intersections.push(
+                            a.x + ((scanY - a.y) / (b.y - a.y)) * (b.x - a.x)
+                        );
                     }
                 }
 
@@ -542,15 +640,8 @@
                 const rowOffset = y * width;
 
                 for (let i = 0; i + 1 < intersections.length; i += 2) {
-                    const start = Math.max(
-                        0,
-                        Math.ceil(intersections[i] - 0.5)
-                    );
-
-                    const end = Math.min(
-                        width,
-                        Math.ceil(intersections[i + 1] - 0.5)
-                    );
+                    const start = Math.max(0, Math.ceil(intersections[i] - 0.5));
+                    const end = Math.min(width, Math.ceil(intersections[i + 1] - 0.5));
 
                     if (end > start) {
                         mask.fill(255, rowOffset + start, rowOffset + end);
@@ -558,6 +649,7 @@
                 }
             }
         },
+
 
 
         isPointInPolygon(x, y, points) {
@@ -585,16 +677,16 @@
         },
 
 
+
         addPolygonPoint(layer, point) {
             if (!this.isDrawing) {
                 this.layer = layer;
                 this.isDrawing = true;
                 this.points = [point];
                 this.currentPoint = point;
-
-                // Don't allocate a full-size mask during polygon drawing.
                 this.previewMask = null;
 
+                this.updatePolygonControls();
                 this.requestRedraw();
                 return;
             }
@@ -604,33 +696,11 @@
                 return;
             }
 
-            const first = this.points[0];
             const previous = this.points[this.points.length - 1];
-
-            // Tap near the first point to close the polygon.
-            if (this.points.length >= 3 && first) {
-                const dimensions = this.getLayerDimensions(layer);
-                const closeDistance = dimensions
-                    ? Math.max(10, Math.min(dimensions.width, dimensions.height) * 0.015)
-                    : 10;
-
-                if (
-                    Math.hypot(
-                        point.x - first.x,
-                        point.y - first.y
-                    ) <= closeDistance
-                ) {
-                    this.finishPolygon();
-                    return;
-                }
-            }
 
             if (
                 previous &&
-                Math.hypot(
-                    point.x - previous.x,
-                    point.y - previous.y
-                ) < 1
+                Math.hypot(point.x - previous.x, point.y - previous.y) < 1
             ) {
                 return;
             }
@@ -638,29 +708,29 @@
             this.points.push(point);
             this.currentPoint = point;
 
+            this.updatePolygonControls();
             this.requestRedraw();
         },
 
 
 
+
+
         finishPolygon() {
-            if (!this.layer || this.points.length < 3) {
-                this.cancelDrawing();
-                return;
-            }
+            if (!this.layer || this.points.length < 3) return false;
 
             const dimensions = this.getLayerDimensions(this.layer);
 
             if (!dimensions) {
                 this.cancelDrawing();
-                return;
+                return false;
             }
 
             this.previewMask = this.createEmptyMask(this.layer);
 
             if (!this.previewMask) {
                 this.cancelDrawing();
-                return;
+                return false;
             }
 
             this.createPolygonMask(
@@ -670,7 +740,9 @@
             );
 
             this.commitPreview();
+            return true;
         },
+
 
 
         startBrush(layer, point) {
@@ -1005,15 +1077,8 @@
             );
         },
 
-
         renderPolygonPreview(ctx) {
-            if (
-                !ctx ||
-                !this.layer ||
-                this.points.length === 0
-            ) {
-                return;
-            }
+            if (!ctx || !this.layer || !this.points.length) return;
 
             const layer = this.layer;
             const dimensions = this.getLayerDimensions(layer);
@@ -1027,22 +1092,10 @@
 
             ctx.save();
 
-            ctx.translate(
-                layer.x + width / 2,
-                layer.y + height / 2
-            );
-
+            ctx.translate(layer.x + width / 2, layer.y + height / 2);
             ctx.rotate((Number(layer.rotation) || 0) * Math.PI / 180);
-
-            ctx.scale(
-                width / dimensions.width,
-                height / dimensions.height
-            );
-
-            ctx.translate(
-                -dimensions.width / 2,
-                -dimensions.height / 2
-            );
+            ctx.scale(width / dimensions.width, height / dimensions.height);
+            ctx.translate(-dimensions.width / 2, -dimensions.height / 2);
 
             ctx.beginPath();
             ctx.moveTo(this.points[0].x, this.points[0].y);
@@ -1052,29 +1105,23 @@
             }
 
             if (this.currentPoint) {
-                ctx.lineTo(
-                    this.currentPoint.x,
-                    this.currentPoint.y
-                );
+                ctx.lineTo(this.currentPoint.x, this.currentPoint.y);
             }
 
-            // Preview the closing edge.
-            if (this.points.length >= 2) {
-                ctx.lineTo(
-                    this.points[0].x,
-                    this.points[0].y
-                );
+            if (this.points.length >= 3) {
+                ctx.lineTo(this.points[0].x, this.points[0].y);
             }
 
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 2 * dimensions.width / width;
-            ctx.setLineDash([6 * dimensions.width / width, 4 * dimensions.width / width]);
+            ctx.setLineDash([
+                6 * dimensions.width / width,
+                4 * dimensions.width / width
+            ]);
             ctx.stroke();
 
             ctx.restore();
         },
-
-
 
         renderOverlay(ctx) {
             if (!ctx || !this.active) return;
