@@ -11,6 +11,16 @@
         isMinimized: false,
         activeMode: 'rect',
         operation: 'new',
+        activePage: 'main',
+
+        brushSettings: {
+            size: 30,
+            hardness: 80,
+            opacity: 100,
+            mode: 'add'
+        },
+
+        blendEdge: 0,
 
         selectionAwareTools: new Set([
             'adjust',
@@ -53,6 +63,8 @@
             this.bindEvents();
             this.setMode(this.activeMode);
             this.setOperation(this.operation);
+            this.updateBrushUI();
+            this.updateBlendUI();
 
             this.initialized = true;
         },
@@ -73,7 +85,7 @@
                         <span class="selection-heading-icon">⌖</span>
                         <div class="selection-heading-text">
                             <strong>Selection</strong>
-                            <small>Selection Tools</small>
+                            <small class="selection-header-subtitle">Selection Tools</small>
                         </div>
                     </div>
 
@@ -92,60 +104,140 @@
 
                 <div class="selection-panel-content">
 
-                    <div class="selection-section">
-                        <div class="selection-section-heading">
-                            <span>TOOLS</span>
-                            <span class="selection-tool-count">08</span>
+                    <div class="selection-main-page">
+
+                        <div class="selection-section">
+                            <div class="selection-section-heading">
+                                <span>TOOLS</span>
+                                <span class="selection-tool-count">08</span>
+                            </div>
+
+                            <div class="selection-mode-grid">
+                                ${this.modes.map(mode => `
+                                    <button type="button"
+                                        class="selection-mode-btn"
+                                        data-mode="${mode.id}"
+                                        title="${mode.label}"
+                                        aria-label="${mode.label}"
+                                        aria-pressed="false">
+                                        <span class="selection-tool-icon">${mode.icon}</span>
+                                        <span class="selection-tool-label">${mode.label}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
                         </div>
 
-                        <div class="selection-mode-grid">
-                            ${this.modes.map(mode => `
+                        <div class="selection-section">
+                            <div class="selection-section-heading">
+                                <span>SELECTION OPERATION</span>
+                            </div>
+
+                            <div class="selection-operation-list">
+                                <button type="button" data-operation="new"
+                                    aria-pressed="true">New</button>
+                                <button type="button" data-operation="add"
+                                    aria-pressed="false">Add</button>
+                                <button type="button" data-operation="subtract"
+                                    aria-pressed="false">Subtract</button>
+                                <button type="button" data-operation="intersect"
+                                    aria-pressed="false">Intersect</button>
+                            </div>
+                        </div>
+
+                        <div class="selection-section selection-blend-section">
+                            <div class="selection-section-heading">
+                                <span>BLEND EDGE</span>
+                                <span class="selection-blend-value">0 px</span>
+                            </div>
+
+                            <input type="range"
+                                class="selection-blend-slider"
+                                data-setting="blend"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value="0"
+                                aria-label="Blend Edge">
+
+
+                        </div>
+
+                        <div class="selection-footer">
+                            <button type="button" data-action="invert">
+                                <span>⇄</span> Invert
+                            </button>
+
+                            <button type="button" data-action="deselect">
+                                <span>⊘</span> Deselect
+                            </button>
+                        </div>
+                    </div>
+                    <div class="selection-brush-page" hidden>
+
+                        <div class="selection-brush-toolbar">
+                            <button type="button"
+                                class="selection-back-btn"
+                                data-action="brush-back"
+                                aria-label="Back">←</button>
+
+                            <div class="selection-brush-mode-list">
                                 <button type="button"
-                                    class="selection-mode-btn"
-                                    data-mode="${mode.id}"
-                                    title="${mode.label}"
-                                    aria-label="${mode.label}"
-                                    aria-pressed="false">
-                                    <span class="selection-tool-icon">${mode.icon}</span>
-                                    <span class="selection-tool-label">${mode.label}</span>
-                                </button>
-                            `).join('')}
+                                    data-brush-mode="add"
+                                    aria-pressed="true">Add</button>
+
+                                <button type="button"
+                                    data-brush-mode="subtract"
+                                    aria-pressed="false">Erase</button>
+                            </div>
                         </div>
+
+                        <div class="selection-section">
+                            <div class="selection-section-heading">
+                                <span>SIZE</span>
+                                <span class="selection-brush-size-value">30 px</span>
+                            </div>
+
+                            <input type="range"
+                                data-brush-setting="size"
+                                min="1"
+                                max="500"
+                                step="1"
+                                value="30"
+                                aria-label="Brush size">
+                        </div>
+
+                        <div class="selection-section">
+                            <div class="selection-section-heading">
+                                <span>HARDNESS</span>
+                                <span class="selection-brush-hardness-value">80%</span>
+                            </div>
+
+                            <input type="range"
+                                data-brush-setting="hardness"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value="80"
+                                aria-label="Brush hardness">
+                        </div>
+
+                        <div class="selection-section">
+                            <div class="selection-section-heading">
+                                <span>OPACITY</span>
+                                <span class="selection-brush-opacity-value">100%</span>
+                            </div>
+
+                            <input type="range"
+                                data-brush-setting="opacity"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value="100"
+                                aria-label="Brush opacity">
+                        </div>
+
                     </div>
 
-                    <div class="selection-section">
-                        <div class="selection-section-heading">
-                            <span>SELECTION OPERATION</span>
-                        </div>
-
-                        <div class="selection-operation-list">
-                            <button type="button" data-operation="new"
-                                aria-pressed="true">
-                                New
-                            </button>
-                            <button type="button" data-operation="add"
-                                aria-pressed="false">
-                                Add
-                            </button>
-                            <button type="button" data-operation="subtract"
-                                aria-pressed="false">
-                                Subtract
-                            </button>
-                            <button type="button" data-operation="intersect"
-                                aria-pressed="false">
-                                Intersect
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="selection-footer">
-                        <button type="button" data-action="invert">
-                            <span>⇄</span> Invert
-                        </button>
-
-                        <button type="button" data-action="deselect">
-                            <span>⊘</span> Deselect
-                        </button>
                     </div>
                 </div>
             `;
@@ -163,6 +255,7 @@
                 const modeButton = event.target.closest('[data-mode]');
                 const operationButton = event.target.closest('[data-operation]');
                 const actionButton = event.target.closest('[data-action]');
+                const brushModeButton = event.target.closest('[data-brush-mode]');
 
                 if (event.target.closest('.selection-close')) {
                     this.close();
@@ -184,8 +277,29 @@
                     return;
                 }
 
+                if (brushModeButton) {
+                    this.setBrushMode(brushModeButton.dataset.brushMode);
+                    return;
+                }
+
                 if (actionButton) {
                     this.runAction(actionButton.dataset.action);
+                }
+            });
+
+            this.panel.addEventListener('input', event => {
+                const brushSetting = event.target.dataset.brushSetting;
+
+                if (brushSetting) {
+                    this.setBrushSetting(
+                        brushSetting,
+                        Number(event.target.value)
+                    );
+                    return;
+                }
+
+                if (event.target.dataset.setting === 'blend') {
+                    this.setBlendEdge(Number(event.target.value));
                 }
             });
 
@@ -217,14 +331,18 @@
 
                 const left = Math.max(
                     0,
-                    Math.min(event.clientX - this.drag.offsetX,
-                        window.innerWidth - width)
+                    Math.min(
+                        event.clientX - this.drag.offsetX,
+                        window.innerWidth - width
+                    )
                 );
 
                 const top = Math.max(
                     0,
-                    Math.min(event.clientY - this.drag.offsetY,
-                        window.innerHeight - height)
+                    Math.min(
+                        event.clientY - this.drag.offsetY,
+                        window.innerHeight - height
+                    )
                 );
 
                 this.panel.style.left = `${left}px`;
@@ -257,6 +375,27 @@
             });
         },
 
+        setPage(page) {
+            if (page !== 'main' && page !== 'brush') return;
+
+            this.activePage = page;
+
+            const mainPage = this.panel.querySelector('.selection-main-page');
+            const brushPage = this.panel.querySelector('.selection-brush-page');
+            const subtitle = this.panel.querySelector('.selection-header-subtitle');
+
+            mainPage.hidden = page !== 'main';
+            brushPage.hidden = page !== 'brush';
+
+            subtitle.textContent = page === 'brush'
+                ? 'Brush Settings'
+                : 'Selection Tools';
+        },
+
+        openBrushPage() {
+            this.setPage('brush');
+        },
+
         open() {
             if (this.isOpen) return;
 
@@ -284,7 +423,7 @@
             if (!this.isOpen) {
                 this.open();
             } else if (this.isMinimized) {
-                this.toggleMinimize(); 
+                this.toggleMinimize();
             } else {
                 this.close();
             }
@@ -321,6 +460,12 @@
                 button.setAttribute('aria-pressed', String(active));
             });
 
+            if (mode === 'brush') {
+                this.openBrushPage();
+            } else {
+                this.setPage('main');
+            }
+
             this.emit('modechange', { mode });
         },
 
@@ -341,13 +486,115 @@
             this.emit('operationchange', { operation });
         },
 
+        setBrushMode(mode) {
+            if (mode !== 'add' && mode !== 'subtract') return;
+
+            this.brushSettings.mode = mode;
+
+            this.panel.querySelectorAll('[data-brush-mode]').forEach(button => {
+                const active = button.dataset.brushMode === mode;
+
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+
+            this.syncBrushSettings();
+        },
+
+        setBrushSetting(setting, value) {
+            if (!Number.isFinite(value)) return;
+
+            const limits = {
+                size: [1, 500],
+                hardness: [0, 100],
+                opacity: [0, 100]
+            };
+
+            if (!limits[setting]) return;
+
+            const [min, max] = limits[setting];
+
+            this.brushSettings[setting] = Math.max(
+                min,
+                Math.min(max, value)
+            );
+
+            this.updateBrushUI();
+            this.syncBrushSettings();
+        },
+
+        updateBrushUI() {
+            const values = this.brushSettings;
+
+            const size = this.panel.querySelector('[data-brush-setting="size"]');
+            const hardness = this.panel.querySelector('[data-brush-setting="hardness"]');
+            const opacity = this.panel.querySelector('[data-brush-setting="opacity"]');
+
+            if (!size || !hardness || !opacity) return;
+
+            size.value = values.size;
+            hardness.value = values.hardness;
+            opacity.value = values.opacity;
+
+            this.panel.querySelector('.selection-brush-size-value').textContent =
+                `${values.size} px`;
+
+            this.panel.querySelector('.selection-brush-hardness-value').textContent =
+                `${values.hardness}%`;
+
+            this.panel.querySelector('.selection-brush-opacity-value').textContent =
+                `${values.opacity}%`;
+
+            this.panel.querySelectorAll('[data-brush-mode]').forEach(button => {
+                const active = button.dataset.brushMode === values.mode;
+
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+        },
+
+        syncBrushSettings() {
+            window.PhotoCookSelectionBrush?.configure?.(
+                this.brushSettings
+            );
+
+            this.emit('brushsettings', {
+                settings: { ...this.brushSettings }
+            });
+        },
+
+        setBlendEdge(value) {
+            if (!Number.isFinite(value)) return;
+
+            this.blendEdge = Math.max(0, Math.min(100, value));
+            this.updateBlendUI();
+
+            this.emit('blendchange', {
+                feather: this.blendEdge
+            });
+        },
+
+        updateBlendUI() {
+            const slider = this.panel.querySelector('[data-setting="blend"]');
+            const label = this.panel.querySelector('.selection-blend-value');
+
+            if (!slider || !label) return;
+
+            slider.value = this.blendEdge;
+            label.textContent = `${this.blendEdge} px`;
+        },
+
         runAction(action) {
+            if (action === 'brush-back') {
+                this.setPage('main');
+                return;
+            }
+
             if (action === 'deselect' || action === 'invert') {
                 this.emit(action);
             }
         },
 
-        // Check whether a tool is allowed to use the active selection
         shouldApplySelection(toolName) {
             if (!toolName) return false;
 
@@ -356,9 +603,16 @@
             );
         },
 
-        // Return the currently approved tools
         getSelectionAwareTools() {
             return [...this.selectionAwareTools];
+        },
+
+        getBlendEdge() {
+            return this.blendEdge;
+        },
+
+        getBrushSettings() {
+            return { ...this.brushSettings };
         },
 
         emit(name, detail = {}) {

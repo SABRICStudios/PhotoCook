@@ -127,35 +127,13 @@
             return canvas;
         },
 
+
         getPreviewBoundary(mask, width, height) {
-            if (
-                !mask ||
-                typeof mask !== 'object'
-            ) {
-                return this.createBoundary(mask, width, height);
-            }
-
-            const cached = this.previewCache.get(mask);
-
-            if (
-                cached &&
-                cached.width === width &&
-                cached.height === height
-            ) {
-                return cached.canvas;
-            }
-
-            const canvas = this.createBoundary(mask, width, height);
-            if (!canvas) return null;
-
-            this.previewCache.set(mask, {
-                width,
-                height,
-                canvas
-            });
-
-            return canvas;
+            // Preview masks change in place during drawing.
+            // Always regenerate until we implement incremental preview rendering.
+            return this.createBoundary(mask, width, height);
         },
+
 
         getMaskPixels(mask, width, height) {
             const total = width * height;

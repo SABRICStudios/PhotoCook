@@ -620,28 +620,64 @@
 
         startBrush(layer, point) {
             const brush = window.PhotoCookSelectionBrush;
-            if (!brush) return false;
+            const engine = window.PhotoCookSelectionEngine;
+
+            if (!brush || !engine) return false;
 
             const dimensions = this.getLayerDimensions(layer);
             if (!dimensions) return false;
 
-            const mask = this.createEmptyMask(layer);
-            if (!mask) return false;
+            const existingMask = engine.getBaseMask?.(layer);
+
+            const mask = existingMask
+                ? new Uint8Array(existingMask)
+                : this.createEmptyMask(layer);
+
+            if (
+                !mask ||
+                mask.length !== dimensions.width * dimensions.height
+            ) {
+                return false;
+            }
 
             this.layer = layer;
             this.brushMask = mask;
 
             try {
-                brush.settings.mode = 'add';
-                brush.attach(mask, dimensions.width, dimensions.height);
+                // Preserve the selected Add / Erase mode and settings.
+                const settings = window.PhotoCookSelection?.getBrushSettings?.();
+
+                if (settings) {
+                    brush.configure(settings);
+                }
+
+                const attached = brush.attach(
+                    mask,
+                    dimensions.width,
+                    dimensions.height
+                );
+
+                if (!attached) {
+                    this.brushMask = null;
+                    this.layer = null;
+                    return false;
+                }
+
                 this.brushAttached = true;
 
-                brush.begin(point.x, point.y);
-
                 this.isDrawing = true;
-                this.requestRedraw();
 
+                if (!brush.begin(point.x, point.y)) {
+                    this.stopBrush();
+                    this.isDrawing = false;
+                    this.brushMask = null;
+                    this.layer = null;
+                    return false;
+                }
+
+                this.requestRedraw();
                 return true;
+
             } catch (error) {
                 console.error(
                     'PhotoCook Selection: Brush initialization failed.',
@@ -649,15 +685,19 @@
                 );
 
                 this.stopBrush();
-                this.cancelDrawing();
+                this.isDrawing = false;
+                this.brushMask = null;
+                this.layer = null;
+
                 return false;
             }
         },
 
         finishBrush() {
             const brush = window.PhotoCookSelectionBrush;
+            const engine = window.PhotoCookSelectionEngine;
 
-            if (!this.layer || !brush) {
+            if (!this.layer || !brush || !engine) {
                 this.cancelDrawing();
                 return;
             }
@@ -665,16 +705,25 @@
             try {
                 brush.end();
 
-                const mask = brush.getMask?.() ||
-                    this.brushMask;
+                const mask = brush.getMask?.() || this.brushMask;
 
                 if (mask) {
-                    window.PhotoCookSelectionEngine?.applyMask(
+                    // The mask already contains the previous selection
+                    // plus the changes made by this brush stroke.
+                    // Commit it as the complete new selection.
+                    engine.applyMask(
                         this.layer,
                         mask,
-                        this.operation
+                        'new'
                     );
                 }
+
+            } catch (error) {
+                console.error(
+                    'PhotoCook Selection: Brush commit failed.',
+                    error
+                );
+
             } finally {
                 this.stopBrush();
 

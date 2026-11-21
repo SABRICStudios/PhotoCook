@@ -6,7 +6,9 @@
     if (window.PhotoCookSelectionEngine) return;
 
     const masks = new Map();
+    const baseMasks = new Map();
     const revisions = new WeakMap();
+    const featherRadii = new WeakMap();
 
     const VALID_OPERATIONS = new Set([
         'new',
@@ -82,6 +84,79 @@
         return mask ? new Uint8Array(mask) : null;
     }
 
+    // Always returns the original, unfeathered selection.
+    function getBaseMask(layer) {
+        const mask = baseMasks.get(layer);
+        return mask ? new Uint8Array(mask) : null;
+    }
+
+    function getFeatherRadius(layer) {
+        return featherRadii.get(layer) || 0;
+    }
+
+    function buildDisplayMask(layer, baseMask, radius) {
+        if (!baseMask) return null;
+
+        const amount = Math.max(
+            0,
+            Math.min(100, Number(radius) || 0)
+        );
+
+        if (amount === 0) {
+            return new Uint8Array(baseMask);
+        }
+
+        const operations = window.PhotoCookSelectionOperations;
+
+        if (typeof operations?.feather !== 'function') {
+            console.error(
+                'PhotoCook Selection: Feather operation unavailable.'
+            );
+            return null;
+        }
+
+        const dimensions = getDimensions(layer);
+        if (!dimensions) return null;
+
+        const result = operations.feather(
+            baseMask,
+            dimensions.width,
+            dimensions.height,
+            amount
+        );
+
+        if (
+            !(result instanceof Uint8Array) ||
+            result.length !== baseMask.length
+        ) {
+            console.error(
+                'PhotoCook Selection: Feather operation returned an invalid mask.'
+            );
+            return null;
+        }
+
+        return result;
+    }
+
+    function updateDisplayMask(layer, operation) {
+        const baseMask = baseMasks.get(layer);
+        if (!baseMask) return false;
+
+        const result = buildDisplayMask(
+            layer,
+            baseMask,
+            getFeatherRadius(layer)
+        );
+
+        if (!result) return false;
+
+        masks.set(layer, result);
+        updateRevision(layer);
+        dispatchChange(layer, result, operation);
+
+        return true;
+    }
+
     function createMask(layer, fill = 0) {
         const dimensions = getDimensions(layer);
         if (!dimensions) return null;
@@ -97,11 +172,24 @@
             mask.fill(fillValue);
         }
 
-        masks.set(layer, mask);
-        updateRevision(layer);
-        dispatchChange(layer, mask, 'create');
+        baseMasks.set(layer, new Uint8Array(mask));
 
-        return mask;
+        const result = buildDisplayMask(
+            layer,
+            mask,
+            getFeatherRadius(layer)
+        );
+
+        if (!result) {
+            baseMasks.delete(layer);
+            return null;
+        }
+
+        masks.set(layer, result);
+        updateRevision(layer);
+        dispatchChange(layer, result, 'create');
+
+        return new Uint8Array(result);
     }
 
     function setMask(layer, mask) {
@@ -123,13 +211,9 @@
             return false;
         }
 
-        const updatedMask = new Uint8Array(mask);
+        baseMasks.set(layer, new Uint8Array(mask));
 
-        masks.set(layer, updatedMask);
-        updateRevision(layer);
-        dispatchChange(layer, updatedMask, 'set');
-
-        return true;
+        return updateDisplayMask(layer, 'set');
     }
 
     function applyMask(layer, incomingMask, operation = 'new') {
@@ -153,7 +237,8 @@
             return false;
         }
 
-        const currentMask = masks.get(layer);
+        // Selection operations always work from the sharp base mask.
+        const currentMask = baseMasks.get(layer);
         const result = new Uint8Array(total);
 
         if (operation === 'new' || !currentMask) {
@@ -165,7 +250,6 @@
 
                 switch (operation) {
                     case 'add':
-                        // Alpha union: preserve partially selected edges.
                         result[i] = Math.round(
                             current + incoming -
                             (current * incoming / 255)
@@ -173,14 +257,12 @@
                         break;
 
                     case 'subtract':
-                        // Remove the incoming selection proportionally.
                         result[i] = Math.round(
                             current * (255 - incoming) / 255
                         );
                         break;
 
                     case 'intersect':
-                        // Keep only the overlapping selection strength.
                         result[i] = Math.round(
                             current * incoming / 255
                         );
@@ -189,11 +271,25 @@
             }
         }
 
-        masks.set(layer, result);
-        updateRevision(layer);
-        dispatchChange(layer, result, operation);
+        baseMasks.set(layer, result);
 
-        return true;
+        return updateDisplayMask(layer, operation);
+    }
+
+    function featherSelection(layer, radius) {
+        if (!getDimensions(layer)) return false;
+
+        const baseMask = baseMasks.get(layer);
+        if (!baseMask) return false;
+
+        const amount = Math.max(
+            0,
+            Math.min(100, Number(radius) || 0)
+        );
+
+        featherRadii.set(layer, amount);
+
+        return updateDisplayMask(layer, 'feather');
     }
 
     function hasSelection(layer) {
@@ -214,8 +310,6 @@
         if (!mask || !dimensions) return null;
 
         const { width, height } = dimensions;
-
-        if (mask.length !== width * height) return null;
 
         let minX = width;
         let minY = height;
@@ -263,10 +357,9 @@
     }
 
     function invert(layer) {
-        const dimensions = getDimensions(layer);
-        if (!dimensions) return false;
+        if (!getDimensions(layer)) return false;
 
-        const currentMask = getMask(layer);
+        const currentMask = baseMasks.get(layer);
 
         if (!currentMask) {
             return Boolean(createMask(layer, 255));
@@ -278,11 +371,9 @@
             inverted[i] = 255 - currentMask[i];
         }
 
-        masks.set(layer, inverted);
-        updateRevision(layer);
-        dispatchChange(layer, inverted, 'invert');
+        baseMasks.set(layer, inverted);
 
-        return true;
+        return updateDisplayMask(layer, 'invert');
     }
 
     function clear(layer) {
@@ -293,10 +384,10 @@
         if (!existed) return false;
 
         masks.delete(layer);
+        baseMasks.delete(layer);
+        featherRadii.delete(layer);
 
-        // Keep the revision increasing even after clearing.
         updateRevision(layer);
-
         dispatchChange(layer, null, 'clear');
 
         return true;
@@ -307,6 +398,9 @@
 
         affectedLayers.forEach(layer => {
             masks.delete(layer);
+            baseMasks.delete(layer);
+            featherRadii.delete(layer);
+
             updateRevision(layer);
             dispatchChange(layer, null, 'clear');
         });
@@ -320,16 +414,37 @@
         return clear(layer);
     }
 
+    // Blend Edge is handled centrally, regardless of selection method.
+    document.addEventListener(
+        'photocook:selection:blendchange',
+        event => {
+            const interaction = window.PhotoCookSelectionInteraction;
+            const layer = interaction?.getSelectedLayer?.();
+
+            if (!layer) return;
+
+            const feather = Number(event.detail?.feather) || 0;
+
+            if (featherSelection(layer, feather)) {
+                interaction?.requestRedraw?.();
+                window.PhotoCookInteraction?.redrawCanvas?.();
+            }
+        }
+    );
+
     window.PhotoCookSelectionEngine = {
         getDimensions,
         getMask,
+        getBaseMask,
         getRevision,
         getSelectionInfo,
+        getFeatherRadius,
         createMask,
         setMask,
         applyMask,
         hasSelection,
         getSelectionBounds,
+        featherSelection,
         invert,
         clear,
         clearAll,
