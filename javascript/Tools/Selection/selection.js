@@ -21,6 +21,7 @@
         },
 
         blendEdge: 0,
+        blendEdgeTimer: null,
 
         selectionAwareTools: new Set([
             'adjust',
@@ -566,12 +567,20 @@
         setBlendEdge(value) {
             if (!Number.isFinite(value)) return;
 
-            this.blendEdge = Math.max(0, Math.min(100, value));
+            const nextValue = Math.max(0, Math.min(100, value));
+
+            if (nextValue === this.blendEdge) return;
+
+            this.blendEdge = nextValue;
             this.updateBlendUI();
 
-            this.emit('blendchange', {
-                feather: this.blendEdge
-            });
+            clearTimeout(this.blendEdgeTimer);
+
+            this.blendEdgeTimer = setTimeout(() => {
+                this.emit('blendchange', {
+                    feather: this.blendEdge
+                });
+            }, 150);
         },
 
         updateBlendUI() {
