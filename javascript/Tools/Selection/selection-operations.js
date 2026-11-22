@@ -81,6 +81,7 @@
             return new Uint8Array(width * height);
         },
 
+
         feather(mask, width, height, radius) {
             if (!this.validate(mask, width, height)) return null;
 
@@ -90,8 +91,39 @@
 
             const extent = Math.max(1, Math.ceil(radius));
             const sigma = Math.max(radius / 2, 0.5);
-            const kernel = new Float32Array(extent * 2 + 1);
+            const padding = extent * 2;
 
+            // Find the selection bounds.
+            let minX = width;
+            let minY = height;
+            let maxX = -1;
+            let maxY = -1;
+
+            for (let y = 0; y < height; y++) {
+                const row = y * width;
+
+                for (let x = 0; x < width; x++) {
+                    if (mask[row + x] === 0) continue;
+
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+
+            if (maxX < 0) return new Uint8Array(mask);
+
+            // Expand bounds to include the feathering area.
+            const left = Math.max(0, minX - padding);
+            const top = Math.max(0, minY - padding);
+            const right = Math.min(width - 1, maxX + padding);
+            const bottom = Math.min(height - 1, maxY + padding);
+
+            const regionWidth = right - left + 1;
+            const regionHeight = bottom - top + 1;
+
+            const kernel = new Float32Array(extent * 2 + 1);
             let kernelTotal = 0;
 
             for (let i = -extent; i <= extent; i++) {
@@ -107,46 +139,51 @@
                 kernel[i] /= kernelTotal;
             }
 
-            const horizontal = new Float32Array(mask.length);
-            const result = new Uint8Array(mask.length);
+            const horizontal = new Float32Array(
+                regionWidth * regionHeight
+            );
+
+            const result = new Uint8Array(mask);
 
             // Horizontal pass.
-            for (let y = 0; y < height; y++) {
-                const row = y * width;
+            for (let y = 0; y < regionHeight; y++) {
+                const sourceRow = (top + y) * width;
+                const targetRow = y * regionWidth;
 
-                for (let x = 0; x < width; x++) {
+                for (let x = 0; x < regionWidth; x++) {
+                    const sourceX = left + x;
                     let total = 0;
 
                     for (let k = -extent; k <= extent; k++) {
-                        const sampleX = x + k;
+                        const sampleX = sourceX + k;
 
                         if (sampleX < 0 || sampleX >= width) continue;
 
                         total +=
-                            mask[row + sampleX] *
+                            mask[sourceRow + x + k] *
                             kernel[k + extent];
                     }
 
-                    horizontal[row + x] = total;
+                    horizontal[targetRow + x] = total;
                 }
             }
 
             // Vertical pass.
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
+            for (let y = 0; y < regionHeight; y++) {
+                for (let x = 0; x < regionWidth; x++) {
                     let total = 0;
 
                     for (let k = -extent; k <= extent; k++) {
                         const sampleY = y + k;
 
-                        if (sampleY < 0 || sampleY >= height) continue;
+                        if (sampleY < 0 || sampleY >= regionHeight) continue;
 
                         total +=
-                            horizontal[sampleY * width + x] *
+                            horizontal[sampleY * regionWidth + x] *
                             kernel[k + extent];
                     }
 
-                    result[y * width + x] = Math.round(
+                    result[(top + y) * width + left + x] = Math.round(
                         Math.max(0, Math.min(255, total))
                     );
                 }
@@ -154,6 +191,7 @@
 
             return result;
         },
+
         expand(mask, width, height, radius) {
             return this.morph(mask, width, height, radius, 'expand');
         },

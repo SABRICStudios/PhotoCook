@@ -218,7 +218,7 @@
             this.previewMask = null;
             this.brushMask = null;
             this.layer = null;
-            
+
             this.updatePolygonControls();
             this.requestRedraw();
         },
@@ -886,6 +886,7 @@ updatePolygonControls() {
             this.previewMask = null;
             this.layer = null;
 
+            this.updatePolygonControls();
             this.requestRedraw();
         },
 
