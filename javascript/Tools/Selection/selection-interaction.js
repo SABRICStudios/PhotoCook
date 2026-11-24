@@ -79,17 +79,15 @@
 
         setMode(mode) {
             const modes = [
-                'rect',
-                'ellipse',
-                'lasso',
-                'polygon',
-                'brush',
-                'wand',
-                'subject',
-                'eyedropper'
+                'rect', 'ellipse', 'lasso', 'polygon',
+                'brush', 'wand', 'subject', 'eyedropper'
             ];
 
             if (!modes.includes(mode)) return false;
+
+            if (this.mode === 'subject' && mode !== 'subject') {
+                window.PhotoCookSelectionSubject?.cancel?.();
+            }
 
             this.cancelDrawing();
             this.mode = mode;
@@ -226,6 +224,9 @@
         deactivate() {
             this.active = false;
             this.subjectRequest++;
+
+            window.PhotoCookSelectionSubject?.cancel?.();
+
             this.cancelDrawing();
         },
 
@@ -375,7 +376,7 @@ updatePolygonControls() {
             if (!point) return false;
 
             if (this.mode === 'subject') {
-                this.selectSubject(layer);
+                this.selectSubject(layer, point, event);
                 return true;
             }
 
@@ -958,44 +959,72 @@ updatePolygonControls() {
             }
         },
 
-        async selectSubject(layer) {
+        async selectSubject(layer, point, event) {
             const subject = window.PhotoCookSelectionSubject;
-            if (!subject) return false;
+            const engine = window.PhotoCookSelectionEngine;
+
+            if (!subject || !engine || !layer || !point) return false;
+            if (subject.isBusy()) return false;
 
             const requestId = ++this.subjectRequest;
 
             try {
-                const result = await subject.select(layer.img);
+                // Prepare the image. The encoder runs only when the image changes.
+                const prepared = await subject.prepare(layer.img);
 
                 if (
+                    !prepared ||
                     requestId !== this.subjectRequest ||
-                    !this.active
+                    !this.active ||
+                    this.mode !== 'subject'
+                ) {
+                    return false;
+                }
+
+                // Subtract operation sends a negative prompt.
+                const label = this.operation === 'subtract' ? 0 : 1;
+
+                const result = await subject.addPoint(
+                    point.x,
+                    point.y,
+                    label
+                );
+
+                if (
+                    !result ||
+                    requestId !== this.subjectRequest ||
+                    !this.active ||
+                    this.mode !== 'subject'
                 ) {
                     return false;
                 }
 
                 if (
-                    !result?.mask ||
-                    !(result.mask instanceof Uint8Array)
+                    !(result.mask instanceof Uint8Array) ||
+                    !result.width ||
+                    !result.height
                 ) {
-                    console.warn(
-                        'PhotoCook Selection: Subject selection returned an invalid mask.'
-                    );
-                    return false;
+                    throw new Error('MobileSAM returned an invalid selection mask.');
                 }
 
-                window.PhotoCookSelectionEngine?.applyMask(
-                    layer,
-                    result.mask,
-                    this.operation
+                // MobileSAM already incorporates all positive and negative prompts.
+                // Therefore, replace the previous subject mask with the refined one.
+                engine.applyMask(layer, result.mask, 'new');
+
+                this.requestRedraw();
+
+                console.info(
+                    `[PhotoCook MobileSAM] Selection refined with ${result.pointCount} point(s).`
                 );
 
                 return true;
+
             } catch (error) {
                 console.error(
-                    'PhotoCook Selection: Subject selection failed.',
+                    '[PhotoCook Selection] Interactive subject selection failed:',
                     error
                 );
+
                 return false;
             }
         },
