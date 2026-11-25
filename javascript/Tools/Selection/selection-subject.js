@@ -5,8 +5,8 @@
     if (window.PhotoCookSelectionSubject) return;
 
     const CONFIG = {
-        encoderPath: './models/mobile_sam_image_encoder.onnx',
-        decoderPath: './models/sam_mask_decoder_single.onnx',
+        encoderPath: './Models/mobile_sam_image_encoder.onnx',
+        decoderPath: './Models/sam_mask_decoder_single.onnx',
         runtimeVersion: '1.22.0',
         inputLongSide: 1024,
         maskSize: 256
